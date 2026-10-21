@@ -2,6 +2,7 @@
 
 Fuentes:
   bitstamp: lo que mira TradingView en las bases (BTCUSD). Pagina hacia atras con `end`.
+  binance:  spot <SIM>USDT (api.binance.com, publico; 1d y 4h alineados a 00:00 UTC), historia desde 2017-2020 segun moneda.
   bingx:    perpetuo USDT-M (swap v3), para BTC/ETH/SOL (y mas monedas). Pagina hacia atras por ventanas.
 
 Uso:  python -m sqzlab.fetch --source bitstamp --symbols BTC ETH --tf 1d 4h
@@ -80,6 +81,27 @@ def fetch_bingx(sym: str, tf: str) -> pd.DataFrame:
     return _clean(df)
 
 
+def fetch_binance(sym: str, tf: str) -> pd.DataFrame:
+    """Spot SIMUSDT. Pagina hacia adelante con startTime (1000 velas por llamada). Sin workarounds de red."""
+    url = "https://api.binance.com/api/v3/klines"
+    step_ms = TF_SECONDS[tf] * 1000
+    start = 1_500_000_000_000   # 2017-07-14, antes del primer par de Binance
+    rows: list[list] = []
+    while True:
+        page = _get(url, {"symbol": f"{sym}USDT", "interval": tf, "limit": 1000, "startTime": start})
+        if not page:
+            break
+        rows.extend(page)
+        nxt = int(page[-1][0]) + step_ms
+        if nxt <= start or len(page) < 2:
+            break
+        start = nxt
+        time.sleep(0.1)
+    df = pd.DataFrame([r[:6] for r in rows], columns=["ms", "open", "high", "low", "close", "volume"])
+    df["time_utc"] = pd.to_datetime(df["ms"].astype("int64"), unit="ms")
+    return _clean(df)
+
+
 def _clean(df: pd.DataFrame) -> pd.DataFrame:
     for c in ["open", "high", "low", "close", "volume"]:
         df[c] = df[c].astype(float)
@@ -88,7 +110,7 @@ def _clean(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def fetch(source: str, sym: str, tf: str) -> pd.DataFrame:
-    return {"bitstamp": fetch_bitstamp, "bingx": fetch_bingx}[source](sym, tf)
+    return {"bitstamp": fetch_bitstamp, "bingx": fetch_bingx, "binance": fetch_binance}[source](sym, tf)
 
 
 def path_for(source: str, sym: str, tf: str) -> Path:
@@ -97,7 +119,7 @@ def path_for(source: str, sym: str, tf: str) -> Path:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--source", choices=["bitstamp", "bingx"], required=True)
+    ap.add_argument("--source", choices=["bitstamp", "bingx", "binance"], required=True)
     ap.add_argument("--symbols", nargs="+", required=True)
     ap.add_argument("--tf", nargs="+", default=["1d", "4h"])
     a = ap.parse_args()

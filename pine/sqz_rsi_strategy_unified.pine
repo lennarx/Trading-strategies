@@ -7,6 +7,7 @@
 strategy("SQZ+RSI A+B+C+D Backtest UNIFICADO", shorttitle="SQZ+RSI BT AUTO", overlay=true, initial_capital=10000, default_qty_type=strategy.fixed, default_qty_value=1, pyramiding=0, process_orders_on_close=true, calc_on_every_tick=false, commission_type=strategy.commission.percent, commission_value=0.05)
  
 // ===== Que probar =====
+useMine = input.bool(false, "Que probar: usar mis casillas (en vez del preset)", group="Que probar", tooltip="Apagado: las casillas de Que probar siguen al preset de la temporalidad. Prendido: valen las que tildes abajo, para aislar senales o lados.")
 m_useA   = input.bool(true, "Senal A (pullback)", group="Que probar")
 m_useB   = input.bool(true, "Senal B (ruptura de squeeze)", group="Que probar")
 m_useC   = input.bool(true, "Senal C (reversion)", group="Que probar")
@@ -21,8 +22,8 @@ m_dLong  = input.bool(true, "D: COMPRAS (divergencia alcista)", group="Que proba
 m_dShort = input.bool(true, "D: VENTAS (divergencia bajista)", group="Que probar")
  
 // ===== Riesgo del backtest =====
-m_riskPct = input.float(1.0, "Riesgo por trade (% del capital)", minval=0.1, step=0.1, group="Backtest", tooltip="El tamano de cada posicion se calcula para que, si toca el stop, se pierda este porcentaje del capital (1R). Asi las ganancias y perdidas se leen en R. La comision se edita en la pestana Propiedades (por defecto 0.05% por lado).")
-m_maxLev  = input.float(1.0, "Apalancamiento maximo (x capital)", minval=0.1, step=0.5, group="Backtest")
+riskPct = input.float(1.0, "Riesgo por trade (% del capital)", minval=0.1, step=0.1, group="Backtest", tooltip="El tamano de cada posicion se calcula para que, si toca el stop, se pierda este porcentaje del capital (1R). Asi las ganancias y perdidas se leen en R. La comision se edita en la pestana Propiedades (por defecto 0.05% por lado).")
+maxLev  = input.float(1.0, "Apalancamiento maximo (x capital)", minval=0.1, step=0.5, group="Backtest")
  
 // ===== Inputs: Squeeze =====
 m_bbLen        = input.int(20, "BB Length", minval=1, group="Squeeze")
@@ -84,26 +85,26 @@ m_volMult = input.float(1.5, "Multiplo minimo sobre la media", minval=0.1, step=
  
 // ===== Presets por temporalidad (GENERADO por src/sqzlab/genpine.py desde params/*.json; NO editar a mano) =====
 // Un set por temporalidad, nunca por moneda. Auto: <1d -> H4, 1d a <1w -> D1, >=1w -> W1. Solo 4h, 1D y 1W estan calibrados.
-// Manual = usa los campos de las pestanas de arriba (sus defaults son los de D1).
+// Los parametros optimizables siguen al preset. Las casillas de Que probar siguen al preset solo si NO tildas
+// 'usar mis casillas'. Riesgo por trade y apalancamiento maximo son siempre tuyos (el preset no los toca).
+// Manual = todo sale de los campos de las pestanas de arriba (sus defaults son los de D1).
 presetSel = input.string("Auto (por temporalidad)", "Preset", options=["Auto (por temporalidad)", "H4", "D1", "W1", "Manual"], group="Preset")
 tfSec    = timeframe.in_seconds()
 autoIdx  = tfSec < 86400 ? 1 : tfSec < 604800 ? 2 : 3
 presetIdx = presetSel == "H4" ? 1 : presetSel == "D1" ? 2 : presetSel == "W1" ? 3 : presetSel == "Manual" ? 0 : autoIdx
 
-useA = presetIdx == 0 ? m_useA : presetIdx == 1 ? true : presetIdx == 2 ? true : true
-useB = presetIdx == 0 ? m_useB : presetIdx == 1 ? true : presetIdx == 2 ? true : true
-useC = presetIdx == 0 ? m_useC : presetIdx == 1 ? true : presetIdx == 2 ? true : true
-aLong = presetIdx == 0 ? m_aLong : presetIdx == 1 ? true : presetIdx == 2 ? true : true
-aShort = presetIdx == 0 ? m_aShort : presetIdx == 1 ? true : presetIdx == 2 ? true : true
-bLong = presetIdx == 0 ? m_bLong : presetIdx == 1 ? true : presetIdx == 2 ? true : true
-bShort = presetIdx == 0 ? m_bShort : presetIdx == 1 ? true : presetIdx == 2 ? true : true
-cLong = presetIdx == 0 ? m_cLong : presetIdx == 1 ? false : presetIdx == 2 ? false : false
-cShort = presetIdx == 0 ? m_cShort : presetIdx == 1 ? true : presetIdx == 2 ? true : true
-useD = presetIdx == 0 ? m_useD : presetIdx == 1 ? true : presetIdx == 2 ? true : true
-dLong = presetIdx == 0 ? m_dLong : presetIdx == 1 ? true : presetIdx == 2 ? true : true
-dShort = presetIdx == 0 ? m_dShort : presetIdx == 1 ? true : presetIdx == 2 ? true : true
-riskPct = presetIdx == 0 ? m_riskPct : presetIdx == 1 ? 1.0 : presetIdx == 2 ? 1.0 : 1.0
-maxLev = presetIdx == 0 ? m_maxLev : presetIdx == 1 ? 1.0 : presetIdx == 2 ? 1.0 : 1.0
+useA = (useMine or presetIdx == 0) ? m_useA : presetIdx == 1 ? true : presetIdx == 2 ? true : true
+useB = (useMine or presetIdx == 0) ? m_useB : presetIdx == 1 ? true : presetIdx == 2 ? true : true
+useC = (useMine or presetIdx == 0) ? m_useC : presetIdx == 1 ? true : presetIdx == 2 ? true : true
+aLong = (useMine or presetIdx == 0) ? m_aLong : presetIdx == 1 ? true : presetIdx == 2 ? true : true
+aShort = (useMine or presetIdx == 0) ? m_aShort : presetIdx == 1 ? true : presetIdx == 2 ? true : true
+bLong = (useMine or presetIdx == 0) ? m_bLong : presetIdx == 1 ? true : presetIdx == 2 ? true : true
+bShort = (useMine or presetIdx == 0) ? m_bShort : presetIdx == 1 ? true : presetIdx == 2 ? true : true
+cLong = (useMine or presetIdx == 0) ? m_cLong : presetIdx == 1 ? false : presetIdx == 2 ? false : false
+cShort = (useMine or presetIdx == 0) ? m_cShort : presetIdx == 1 ? true : presetIdx == 2 ? true : true
+useD = (useMine or presetIdx == 0) ? m_useD : presetIdx == 1 ? true : presetIdx == 2 ? true : true
+dLong = (useMine or presetIdx == 0) ? m_dLong : presetIdx == 1 ? true : presetIdx == 2 ? true : true
+dShort = (useMine or presetIdx == 0) ? m_dShort : presetIdx == 1 ? true : presetIdx == 2 ? true : true
 bbLen = presetIdx == 0 ? m_bbLen : presetIdx == 1 ? 20 : presetIdx == 2 ? 20 : 20
 bbMult = presetIdx == 0 ? m_bbMult : presetIdx == 1 ? 2.0 : presetIdx == 2 ? 2.0 : 2.0
 kcLen = presetIdx == 0 ? m_kcLen : presetIdx == 1 ? 20 : presetIdx == 2 ? 20 : 20
@@ -440,4 +441,4 @@ presetName = presetIdx == 0 ? "Manual" : presetIdx == 1 ? "H4" : presetIdx == 2 
 tfCalibrated = tfSec == 14400 or tfSec == 86400 or tfSec == 604800
 var table infoTbl = table.new(position.top_right, 1, 1)
 if barstate.islast
-    table.cell(infoTbl, 0, 0, "Preset: " + presetName + (presetIdx == 0 or tfCalibrated ? "" : " (TF no calibrado)"), text_color=color.white, bgcolor=color.new(color.gray, 30))
+    table.cell(infoTbl, 0, 0, "Preset: " + presetName + (useMine ? " | casillas propias" : "") + (presetIdx == 0 or tfCalibrated ? "" : " (TF no calibrado)"), text_color=color.white, bgcolor=color.new(color.gray, 30))

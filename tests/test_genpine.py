@@ -37,8 +37,35 @@ def test_generated_files_are_up_to_date_with_params():
     assert uni == genpine.unified(lines, sets)
 
 
-def test_unified_has_preset_per_input_and_uses_timeframe_in_seconds():
-    uni = (genpine.ROOT / "pine" / "sqz_rsi_strategy_unified.pine").read_text(encoding="utf-8")
-    assert "timeframe.in_seconds()" in uni
-    for n in genpine.pine_defaults(genpine.read_ref()):
-        assert re.search(rf"^m_{n}\s*=\s*input\.", uni, re.M) and re.search(rf"^{n} = presetIdx == 0 \? m_{n}", uni, re.M)
+def _uni():
+    return (genpine.ROOT / "pine" / "sqz_rsi_strategy_unified.pine").read_text(encoding="utf-8")
+
+
+def test_unified_uses_timeframe_in_seconds_and_keeps_not_compiled_header():
+    uni = _uni()
+    assert "timeframe.in_seconds()" in uni and "NO COMPILADO" in uni.splitlines()[1]
+
+
+def test_unified_tunable_params_follow_the_preset_per_timeframe():
+    uni = _uni()
+    tunable = [n for n in genpine.pine_defaults(genpine.read_ref())
+               if n not in genpine.WHAT_TO_TEST and n not in genpine.USER_ALWAYS]
+    assert tunable
+    for n in tunable:
+        assert re.search(rf"^m_{n}\s*=\s*input\.", uni, re.M)
+        assert re.search(rf"^{n} = presetIdx == 0 \? m_{n} : presetIdx == 1 \?", uni, re.M)
+
+
+def test_unified_what_to_test_checkboxes_have_their_own_switch_default_off():
+    uni = _uni()
+    assert re.search(r'^useMine = input\.bool\(false, "Que probar: usar mis casillas \(en vez del preset\)"', uni, re.M)
+    for n in genpine.WHAT_TO_TEST:
+        assert re.search(rf"^m_{n}\s*=\s*input\.bool", uni, re.M)
+        assert re.search(rf"^{n} = \(useMine or presetIdx == 0\) \? m_{n} :", uni, re.M), n
+
+
+def test_unified_risk_and_leverage_are_always_user_inputs():
+    uni = _uni()
+    for n in genpine.USER_ALWAYS:
+        assert re.search(rf"^{n}\s*=\s*input\.float\(", uni, re.M)
+        assert f"m_{n}" not in uni and not re.search(rf"^{n} = presetIdx", uni, re.M)

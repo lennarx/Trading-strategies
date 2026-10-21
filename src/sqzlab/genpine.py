@@ -4,7 +4,7 @@
   pine/sqz_rsi_strategy_unified.pine : un solo script con los 3 presets, elegidos solos con timeframe.in_seconds()
 
 Regla del proyecto: UN set de parametros por temporalidad, NUNCA por moneda. Los .pine generados no se editan a mano:
-se cambia el JSON y se regenera. Base: ref/sqz rsi strategy v2.pine (solo lectura; solo cambian los defaults de los
+se cambia el JSON y se regenera. Base: ref/sqz_rsi_strategy_v2.pine (solo lectura; solo cambian los defaults de los
 inputs, el titulo y, en el unificado, el bloque de presets).
 
 Uso:  python -m sqzlab.genpine [--init-params]
@@ -18,10 +18,17 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-REF = ROOT / "ref" / "sqz rsi strategy v2.pine"
+REF = ROOT / "ref" / "sqz_rsi_strategy_v2.pine"
 TFS = {"h4": "H4", "d1": "D1", "w1": "W1"}
 INPUT_RE = re.compile(r'^(?P<name>\w+)(?P<eq>\s*=\s*)input\.(?P<typ>bool|int|float|string)\((?P<default>[^,]+),(?P<rest>.*)$')
 TITLE_RE = re.compile(r'strategy\("SQZ\+RSI A\+B\+C\+D Backtest", shorttitle="SQZ\+RSI BT"')
+# Casillas de "Que probar": en el unificado NO las pisa el preset (salvo que el usuario no marque su interruptor);
+# riesgo y apalancamiento: siempre son inputs del usuario, el preset no los toca.
+WHAT_TO_TEST = ["useA", "useB", "useC", "aLong", "aShort", "bLong", "bShort", "cLong", "cShort", "useD", "dLong", "dShort"]
+USER_ALWAYS = ["riskPct", "maxLev"]
+MINE_INPUT = ('useMine = input.bool(false, "Que probar: usar mis casillas (en vez del preset)", group="Que probar", '
+              'tooltip="Apagado: las casillas de Que probar siguen al preset de la temporalidad. Prendido: valen las que tildes abajo, '
+              'para aislar senales o lados.")')
 PRESET_NOTE = "Auto: <1d -> H4, 1d a <1w -> D1, >=1w -> W1. Solo 4h, 1D y 1W estan calibrados."
 
 
@@ -69,7 +76,7 @@ def init_params() -> None:
         if p.exists():
             print(f"{p.name}: ya existe, no se pisa")
             continue
-        doc = {"_meta": {"timeframe": label, "status": "SIN OPTIMIZAR: defaults de ref/sqz rsi strategy v2.pine",
+        doc = {"_meta": {"timeframe": label, "status": "SIN OPTIMIZAR: defaults de ref/sqz_rsi_strategy_v2.pine",
                          "scope": "un set por temporalidad, nunca por moneda",
                          "keys": "nombres EXACTOS de las variables de input del Pine"}, **defaults}
         p.write_text(json.dumps(doc, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
@@ -96,8 +103,14 @@ def unified(lines: list[str], sets: dict[str, dict]) -> str:
         m = INPUT_RE.match(ln)
         if m and m["name"] in sets["d1"]:
             n = m["name"]
-            names.append(n)
-            ln = f'm_{n}{m["eq"]}input.{m["typ"]}({pine_literal(sets["d1"][n])},{m["rest"]}'
+            lit = pine_literal(sets["d1"][n])
+            if n in USER_ALWAYS:       # siempre del usuario: mismo nombre, sin preset
+                ln = f'{n}{m["eq"]}input.{m["typ"]}({lit},{m["rest"]}'
+            else:
+                names.append(n)
+                if n == WHAT_TO_TEST[0]:
+                    out.append(MINE_INPUT)
+                ln = f'm_{n}{m["eq"]}input.{m["typ"]}({lit},{m["rest"]}'
         elif TITLE_RE.search(ln):
             ln = TITLE_RE.sub('strategy("SQZ+RSI A+B+C+D Backtest UNIFICADO", shorttitle="SQZ+RSI BT AUTO"', ln)
         out.append(ln)
@@ -106,7 +119,9 @@ def unified(lines: list[str], sets: dict[str, dict]) -> str:
     blk = [
         "// ===== Presets por temporalidad (GENERADO por src/sqzlab/genpine.py desde params/*.json; NO editar a mano) =====",
         "// Un set por temporalidad, nunca por moneda. " + PRESET_NOTE,
-        "// Manual = usa los campos de las pestanas de arriba (sus defaults son los de D1).",
+        "// Los parametros optimizables siguen al preset. Las casillas de Que probar siguen al preset solo si NO tildas",
+        "// 'usar mis casillas'. Riesgo por trade y apalancamiento maximo son siempre tuyos (el preset no los toca).",
+        "// Manual = todo sale de los campos de las pestanas de arriba (sus defaults son los de D1).",
         'presetSel = input.string("Auto (por temporalidad)", "Preset", options=["Auto (por temporalidad)", "H4", "D1", "W1", "Manual"], group="Preset")',
         "tfSec    = timeframe.in_seconds()",
         "autoIdx  = tfSec < 86400 ? 1 : tfSec < 604800 ? 2 : 3",
@@ -114,8 +129,9 @@ def unified(lines: list[str], sets: dict[str, dict]) -> str:
         "",
     ]
     for n in names:
-        a, b, c = (pine_literal(sets[t][n]) for t in ("h4", "d1", "w1"))
-        blk.append(f"{n} = presetIdx == 0 ? m_{n} : presetIdx == 1 ? {a} : presetIdx == 2 ? {b} : {c}")
+        a_, b_, c_ = (pine_literal(sets[t][n]) for t in ("h4", "d1", "w1"))
+        cond = "(useMine or presetIdx == 0)" if n in WHAT_TO_TEST else "presetIdx == 0"
+        blk.append(f"{n} = {cond} ? m_{n} : presetIdx == 1 ? {a_} : presetIdx == 2 ? {b_} : {c_}")
     blk.append("")
     out[at:at] = blk
     out += [
@@ -125,7 +141,7 @@ def unified(lines: list[str], sets: dict[str, dict]) -> str:
         "tfCalibrated = tfSec == 14400 or tfSec == 86400 or tfSec == 604800",
         "var table infoTbl = table.new(position.top_right, 1, 1)",
         "if barstate.islast",
-        '    table.cell(infoTbl, 0, 0, "Preset: " + presetName + (presetIdx == 0 or tfCalibrated ? "" : " (TF no calibrado)"), text_color=color.white, bgcolor=color.new(color.gray, 30))',
+        '    table.cell(infoTbl, 0, 0, "Preset: " + presetName + (useMine ? " | casillas propias" : "") + (presetIdx == 0 or tfCalibrated ? "" : " (TF no calibrado)"), text_color=color.white, bgcolor=color.new(color.gray, 30))',
     ]
     hdr = ["// GENERADO por src/sqzlab/genpine.py desde params/{h4,d1,w1}.json. NO editar a mano. NO COMPILADO en TradingView."]
     return "\n".join(out[:1] + hdr + out[1:]) + "\n"

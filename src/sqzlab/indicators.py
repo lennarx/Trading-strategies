@@ -135,21 +135,18 @@ def pivots(src, left: int, right: int, kind: str) -> np.ndarray:
     x = np.asarray(src, float)
     n = len(x)
     out = np.full(n, np.nan)
-    for i in range(left + right, n):
-        c = i - right
-        mid = x[c]
-        if np.isnan(mid):
-            continue
-        lw = x[c - left:c]
-        rw = x[c + 1:i + 1]
-        if np.isnan(lw).any() or np.isnan(rw).any():
-            continue
-        if kind == "low":
-            ok = (mid < lw).all() and (mid <= rw).all()
-        else:
-            ok = (mid > lw).all() and (mid >= rw).all()
-        if ok:
-            out[i] = mid
+    w = left + right + 1
+    if n < w:
+        return out
+    win = sliding_window_view(x, w)                     # win[k] = x[k : k + w]; el centro es win[k][left]
+    mid = win[:, left]
+    lw, rw = win[:, :left], win[:, left + 1:]
+    if kind == "low":
+        ok = (mid[:, None] < lw).all(axis=1) & (mid[:, None] <= rw).all(axis=1)
+    else:
+        ok = (mid[:, None] > lw).all(axis=1) & (mid[:, None] >= rw).all(axis=1)
+    ok &= ~np.isnan(win).any(axis=1)                    # con NaN en la ventana no hay pivote
+    out[w - 1:][ok] = mid[ok]                           # confirmado en la vela k + left + right
     return out
 
 
@@ -174,4 +171,8 @@ def compute(df: pd.DataFrame, p: dict) -> dict:
     d["ema1"], d["ema2"], d["ema3"] = ema(c, p["emaFLen"], sd), ema(c, p["emaMLen"], sd), ema(c, p["emaSLen"], sd)
     d["adx"] = dmi_adx(h, l, c, p["adxLen"])
     d["atr"] = rma(tr, p["atrLen"])
+    v = df["volume"].to_numpy(float)
+    d["volume"] = v
+    d["hasVol"] = np.nancumsum(np.nan_to_num(v)) > 0
+    d["volAvg"] = sma(v, p["volLen"])
     return d

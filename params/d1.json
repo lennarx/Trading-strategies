@@ -1,7 +1,7 @@
 {
   "_meta": {
     "timeframe": "D1",
-    "status": "SIN OPTIMIZAR: defaults de ref/sqz rsi strategy v2.pine",
+    "status": "SIN OPTIMIZAR: defaults de ref/sqz_rsi_strategy_v2.pine",
     "scope": "un set por temporalidad, nunca por moneda",
     "keys": "nombres EXACTOS de las variables de input del Pine"
   },

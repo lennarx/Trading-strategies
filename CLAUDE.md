@@ -2,6 +2,10 @@
 
 Repo para **optimizar y validar sin trampas** una estrategia de trading de criptos (Squeeze Momentum + RSI, Pine Script v5) en **H4, D1 y semanal**, sobre muchas monedas. Se simula en Python y se valida contra TradingView. Este archivo se carga solo en cada sesión: mantenelo corto y actualizado.
 
+## Trabajo multisesión (obligatorio)
+
+Es un trabajo de muchas sesiones y el repo es la única memoria. **Al empezar: leé `docs/HANDOFF.md` primero (sección 0 incluida).** **Al terminar cada tarea o fase y antes de cerrar la sesión: dejá asentado el avance** en la sección 8 del HANDOFF (hecho, sin explicar, próximos pasos) y en `results/tv_log.md` si hubo corridas en TradingView. Marcá como "no verificado" lo que no probaste.
+
 ## Dónde está cada cosa (leé en este orden en una sesión nueva)
 
 1. `docs/HANDOFF.md`: estado, diseño del indicador, evidencia previa, bugs y lecciones, pendientes.
@@ -37,7 +41,7 @@ Repo para **optimizar y validar sin trampas** una estrategia de trading de cript
 - Python 3.12 en `.venv` (en esta PC no hay `make`; los comandos van directos). Paquete en `src/sqzlab/`, tests en `tests/`. Semillas fijas en todo lo aleatorio.
 - Setup (una vez): `py -3.12 -m venv .venv` y `.venv\Scripts\python -m pip install -r requirements.txt`.
 - Todos los comandos con `PYTHONPATH=src` (PowerShell: `$env:PYTHONPATH="src"`):
-  - Datos: `python -m sqzlab.fetch --source bitstamp --symbols BTC ETH SOL --tf 1d 4h` y `--source bingx ...` (perpetuo USDT-M). Salen a `data/<fuente>_<SIM>_<tf>.csv` (gitignored).
+  - Datos: `python -m sqzlab.fetch --source bitstamp --symbols BTC ETH SOL --tf 1d 4h` y `--source binance ...` (spot USDT, más monedas) y `--source bingx ...` (perpetuo USDT-M). Salen a `data/<fuente>_<SIM>_<tf>.csv` (gitignored).
   - Calibración (Fase 2): `python -m sqzlab.calibrate` (imprime tabla y escribe `results/calibration.md`).
   - Generar Pine desde `params/*.json`: `python -m sqzlab.genpine` (`--init-params` crea los JSON solo si no existen).
   - Tests: `python -m pytest -q`.

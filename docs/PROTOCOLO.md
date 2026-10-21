@@ -4,7 +4,7 @@ Objetivo: máximo rendimiento **robusto** de la strategy SQZ+RSI en **H4, D1 y s
 
 ## 1. Fases (en este orden; no saltear)
 
-1. **Datos.** Velas 1d y 4h de BTC, ETH, SOL desde BingX (columnas `time_utc,open,high,low,close,volume`, UTC). 1W se construye resampleando 1d. Para calibrar BTC/ETH, conseguir también velas de Bitstamp (es lo que mira TradingView en las bases). Un script de descarga versionado en `src/`. Si hay bloqueo de red, no lo esquives: reportalo y pedí el archivo.
+1. **Datos.** Velas 1d y 4h de BTC, ETH, SOL desde BingX (columnas `time_utc,open,high,low,close,volume`, UTC). 1W se construye resampleando 1d. Para calibrar BTC/ETH, conseguir también velas de Bitstamp (es lo que mira TradingView en las bases). Para el universo de optimización y el holdout por monedas, sumar más monedas con historia larga: Binance spot `<SIM>USDT` (BTC, ETH, BNB, LTC, XRP, ADA, LINK, DOGE, SOL) y Bitstamp (LTC, XRP, BCH, LINK, ADA, DOGE, XLM). Un script de descarga versionado en `src/sqzlab/fetch.py`. Si hay bloqueo de red, no lo esquives: reportalo y pedí el archivo.
 2. **Calibración (puerta de entrada).** Reproducir con el port las filas de `docs/TV_BASELINES.md`: mismo número de trades (o diferencia explicada), PF y PnL similares, y coincidencia de fechas y precios de entrada/salida en los spot-checks. Documentar cada divergencia (semilla de EMA/RMA, cierre de vela, comisión, tamaño por equity con PnL abierto, modelo de reversión). **Sin calibración aprobada no se optimiza nada.** Primero A+B+C (lo que corre en TradingView), después se suma D.
 3. **Completar el port a strategy v2**: señal D, toggles por lado, tamaño por riesgo, tope de apalancamiento, comisión 0,05%/lado. Verificar contra `ref/sqz_rsi_strategy_v2.pine`.
 4. **Optimizar** por temporalidad con las reglas de la sección 2.
@@ -15,6 +15,12 @@ Objetivo: máximo rendimiento **robusto** de la strategy SQZ+RSI en **H4, D1 y s
 ## 2. Qué se puede mover y cómo
 
 Parámetros ("niveles de entrada"): `adxMin, pbBars, atrMult, minSqz, graceBars, needE200, needMom, invBars, cHot, cCold, cLook, cWin, cStopBars, cAtrMult, cMaxRisk, dvL, dvR, dvMin, dvMax, dAtrMult, dMaxRisk, riesgo %`, la configuración de squeeze (`bbLen, bbMult, kcLen, kcMult`), y qué señales y lados están encendidos. Variantes estructurales de stop y salida (otra EMA de salida, objetivos en R, trailing) se documentan aparte, una por una.
+
+### Decisiones fijadas ANTES de ver cualquier resultado de optimización (2026-10-20)
+- **Ventana de datos para optimizar: desde 2017-01-01.** BTC 2011-2014 (precios de 3 a 1.000 USD, saltos enormes) domina el resultado en USD y justo ahí está la diferencia sin explicar contra TradingView. Los datos viejos quedan **solo para calibrar**. D1: entrenar 2017-01-01 a 2023-12-31, validar 2024-2026. H4: walk-forward desde 2017-01-01. Semanal: agregado entre monedas.
+- **Calibrar solo con BTC.** ETH 1D/4h no se usa para calibrar (ver HANDOFF: el feed de ETH de TradingView no está resuelto).
+- **`cLong` (C compras) es un parámetro más a evaluar por temporalidad**, no una decisión previa. La calibración usa `cLong=True` porque así corre la v1 cargada en TradingView; `params/*.json` traen `cLong=false` (v2, porque C compras no mostró ventaja en SOL 1D ni en 6 monedas 1D). La grilla evalúa `{false, true}`; `params/*.json` se queda en `false` hasta que haya evidencia fuera de muestra a favor.
+- **Velocidad:** `simulate` tarda ~0,2 s en BTC 4h de 2017 a hoy (20.000 velas), ~0,04 s en 1D y casi nada en 1W; el costo de la grilla es combinaciones × monedas × tiempo por corrida, repartido en los 16 núcleos de la PC con `multiprocessing`. No se acelera con numba hasta ver el tamaño real de la grilla; si hace falta, cachear indicadores por set de parámetros o numba, siempre sin cambiar resultados y con un test de regresión contra la calibración (`tests/test_calibration.py`).
 
 Reglas obligatorias:
 - **Un set de parámetros por temporalidad (H4, D1, W1), nunca por moneda.** El optimizador evalúa cada combinación sobre todas las monedas del grupo de entrenamiento a la vez (agregado) y devuelve UN set por temporalidad; prohibido guardar parámetros por símbolo (mataría el holdout por monedas y es sobreajuste disfrazado).
