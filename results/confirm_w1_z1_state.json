@@ -1,0 +1,23 @@
+{
+ "looks": 1,
+ "verdict": "SIN MUESTRA (n=27 < 100): ni confirma ni desmiente",
+ "n": 27,
+ "exp": -0.10756966270374418,
+ "exp_trim": -0.17243481482424367,
+ "pf": 0.5798140243660631,
+ "coins": [
+  "AAVE",
+  "ATOM",
+  "DOT",
+  "FIL",
+  "NEAR",
+  "UNI"
+ ],
+ "crit": {
+  "expectativa > 0,2R": false,
+  "expectativa > p95 del baseline": false,
+  "n >= 100": false,
+  "sin el mejor trade > 0": false,
+  "expectativa recortada (sin 2% mejores) > 0": false
+ }
+}

@@ -34,6 +34,12 @@ DEFAULTS: dict = dict(
     # Redondeo a mintick (hipotesis de calibracion): mintick=None lo apaga. tick_stop redondea el nivel de stop de
     # strategy.exit; tick_fill redondea los precios de fill (entrada, cierre y stop).
     mintick=None, tick_stop=False, tick_fill=False,
+    # Slippage (Fase 6, prueba de estres de costos): % por lado, en contra del trade, sobre entrada, cierre y stop. 0 = apagado.
+    slip_pct=0.0,
+    # Variantes estructurales de la Fase 6.4 (docs/PROTOCOLO.md), TODAS apagadas: V1 trailing por ATR (trailK x ATR desde el
+    # extremo, 0 = off), V2 break-even (stop a la entrada al cerrar a +beR x riesgo inicial, 0 = off), V3 salida contra la
+    # EMA55 en vez de la EMA20 (exitMid), V4 largos solo si BTC D1 de ayer cerro sobre su EMA200 (regimeFilter).
+    trailK=0.0, beR=0.0, exitMid=False, regimeFilter=False,
     rsiLen=14, maType="SMA", maLen=14,
     # Senal A y base
     emaFLen=20, emaMLen=55, emaSLen=200, adxLen=14, adxMin=20.0, pbBars=5, atrLen=14, atrMult=0.25, useRsiF=True,
@@ -95,12 +101,16 @@ class SimResult:
         return pd.DataFrame(rows)
 
 
-def simulate(df: pd.DataFrame, ind: dict | None = None, **over) -> SimResult:
+def simulate(df: pd.DataFrame, ind: dict | None = None, regime: np.ndarray | None = None, **over) -> SimResult:
     """`ind`: salida de indicators.compute(df, p) ya calculada (el optimizador la cachea por set de parametros de
-    indicadores); tiene que corresponder a los mismos parametros de indicadores que `over`. Sin `ind`, se calcula."""
+    indicadores); tiene que corresponder a los mismos parametros de indicadores que `over`. Sin `ind`, se calcula.
+    `regime`: bandera por vela del filtro V4 (variants.regime_flags); si regimeFilter esta prendido y no viene, se calcula."""
     p = dict(DEFAULTS)
     p.update(over)
     d = ind if ind is not None else compute(df, p)
+    if p["regimeFilter"] and regime is None:
+        from .variants import regime_flags
+        regime = regime_flags(df["time_utc"])
     o, h, l, c = d["open"], d["high"], d["low"], d["close"]
     n = len(c)
     mom, rsi, rsiMa = d["mom"], d["rsi"], d["rsiMa"]
@@ -139,6 +149,8 @@ def simulate(df: pd.DataFrame, ind: dict | None = None, **over) -> SimResult:
     stop_px = np.nan
     stop_live_from = 0
     cur: Trade | None = None
+    ext = np.nan                         # extremo a favor desde la entrada (V1/V2)
+    trail_k, be_r = p["trailK"], p["beR"]
 
     posType = 0
     entryBar = None
@@ -154,8 +166,11 @@ def simulate(df: pd.DataFrame, ind: dict | None = None, **over) -> SimResult:
     trades: list[Trade] = []
     eq_curve = np.full(n, np.nan)
 
+    slip = p["slip_pct"] / 100.0
+
     def close_pos(i: int, px: float, reason: str):
         nonlocal cash, pos, avg, cur, stop_px
+        px = px * (1.0 - np.sign(pos) * slip)    # cerrar un largo = vender mas bajo; cerrar un corto = comprar mas alto
         pnl = pos * (px - avg)
         fee = abs(pos) * px * comm_rate
         cash += pnl - fee
@@ -169,7 +184,8 @@ def simulate(df: pd.DataFrame, ind: dict | None = None, **over) -> SimResult:
         stop_px = np.nan
 
     def open_pos(i: int, side: int, kind: str, q: float, px: float, stop: float):
-        nonlocal cash, pos, avg, cur, stop_px, stop_live_from
+        nonlocal cash, pos, avg, cur, stop_px, stop_live_from, ext
+        px = px * (1.0 + side * slip)            # abrir un largo = comprar mas alto; abrir un corto = vender mas bajo
         fee = q * px * comm_rate
         cash -= fee
         pos = side * q
@@ -177,6 +193,7 @@ def simulate(df: pd.DataFrame, ind: dict | None = None, **over) -> SimResult:
         stop = r_stop(stop)
         stop_px = stop
         stop_live_from = i + 1
+        ext = px
         cur = Trade(side=side, kind=kind, entry_i=i, entry_px=px, qty=q, stop=stop, comm=fee,
                     risk_cash=abs(px - stop) * q)
 
@@ -188,6 +205,19 @@ def simulate(df: pd.DataFrame, ind: dict | None = None, **over) -> SimResult:
             elif pos < 0 and h[i] >= stop_px:
                 close_pos(i, r_fill(max(o[i], stop_px)), "stop")
         posNow = 1 if pos > 0 else (-1 if pos < 0 else 0)
+        if (trail_k or be_r) and pos != 0 and cur.entry_i < i:   # V1/V2: el stop nuevo vale desde la vela siguiente
+            if pos > 0:
+                ext = max(ext, h[i])
+                if trail_k and not np.isnan(atr[i]):
+                    stop_px = max(stop_px, ext - trail_k * atr[i])
+                if be_r and c[i] >= cur.entry_px + be_r * abs(cur.entry_px - cur.stop):
+                    stop_px = max(stop_px, cur.entry_px)
+            else:
+                ext = min(ext, l[i])
+                if trail_k and not np.isnan(atr[i]):
+                    stop_px = min(stop_px, ext + trail_k * atr[i])
+                if be_r and c[i] <= cur.entry_px - be_r * abs(cur.entry_px - cur.stop):
+                    stop_px = min(stop_px, cur.entry_px)
         eq_now = cash + (pos * (c[i] - avg) if pos != 0 else 0.0)   # strategy.equity al cierre, antes de las ordenes
         eq_curve[i] = eq_now
 
@@ -206,7 +236,8 @@ def simulate(df: pd.DataFrame, ind: dict | None = None, **over) -> SimResult:
         trigShort = c[i] < e1 and c[i] < lPrev
         rsiLongOk = (not p["useRsiF"]) or rsi[i] > rsiMa[i]
         rsiShortOk = (not p["useRsiF"]) or rsi[i] < rsiMa[i]
-        longRawA = p["useA"] and p["aLong"] and upTrend and adxOk and setupLong[i] and trigLong and rsiLongOk and volOk
+        regOk = (not p["regimeFilter"]) or bool(regime[i])    # V4: solo condiciona los largos
+        longRawA = regOk and p["useA"] and p["aLong"] and upTrend and adxOk and setupLong[i] and trigLong and rsiLongOk and volOk
         shortRawA = p["useA"] and p["aShort"] and downTrend and adxOk and setupShort[i] and trigShort and rsiShortOk and volOk
         longSigA = shortSigA = False
         if longRawA and (lastLong is None or i - lastLong > pb):
@@ -220,7 +251,7 @@ def simulate(df: pd.DataFrame, ind: dict | None = None, **over) -> SimResult:
         momPrev = mom[ip] if ip >= 0 and not np.isnan(mom[ip]) else 0.0
         momUp = mom[i] > 0 and mom[i] > momPrev
         momDown = mom[i] < 0 and mom[i] < momPrev
-        longSigB = (p["useB"] and p["bLong"] and armedPrev and c[i] > rHiPrev and ((not p["needE200"]) or c[i] > e3)
+        longSigB = (regOk and p["useB"] and p["bLong"] and armedPrev and c[i] > rHiPrev and ((not p["needE200"]) or c[i] > e3)
                     and ((not p["needMom"]) or momUp) and volOk)
         shortSigB = (p["useB"] and p["bShort"] and armedPrev and c[i] < rLoPrev and ((not p["needE200"]) or c[i] < e3)
                      and ((not p["needMom"]) or momDown) and volOk)
@@ -251,7 +282,7 @@ def simulate(df: pd.DataFrame, ind: dict | None = None, **over) -> SimResult:
         shortSigC = (p["useC"] and p["cShort"] and cArmS is not None and i - cArmS <= p["cWin"] and rsi[i] < rsiMa[i]
                      and ((not p["cNeedMom"]) or mom[i] < momPrev) and ((not p["cNeedEma"]) or c[i] < e1)
                      and riskOkS and posNow != -1)
-        longSigC = (p["useC"] and p["cLong"] and cArmL is not None and i - cArmL <= p["cWin"] and rsi[i] > rsiMa[i]
+        longSigC = (regOk and p["useC"] and p["cLong"] and cArmL is not None and i - cArmL <= p["cWin"] and rsi[i] > rsiMa[i]
                     and ((not p["cNeedMom"]) or mom[i] > momPrev) and ((not p["cNeedEma"]) or c[i] > e1)
                     and riskOkL and posNow != 1)
         if shortSigC:
@@ -281,18 +312,19 @@ def simulate(df: pd.DataFrame, ind: dict | None = None, **over) -> SimResult:
         stopDS = pHPx + p["dAtrMult"] * atr[i]
         riskOkDL = p["dMaxRisk"] == 0 or c[i] - stopDL <= p["dMaxRisk"] * atr[i]
         riskOkDS = p["dMaxRisk"] == 0 or stopDS - c[i] <= p["dMaxRisk"] * atr[i]
-        longSigD = (p["useD"] and p["dLong"] and bullDiv and c[i] > stopDL and ((not p["dNeedEma"]) or c[i] > e1)
+        longSigD = (regOk and p["useD"] and p["dLong"] and bullDiv and c[i] > stopDL and ((not p["dNeedEma"]) or c[i] > e1)
                     and riskOkDL and posNow != 1)
         shortSigD = (p["useD"] and p["dShort"] and bearDiv and c[i] < stopDS and ((not p["dNeedEma"]) or c[i] < e1)
                      and riskOkDS and posNow != -1)
 
         # 5) salidas por condicion (strategy.close al cierre)
         eb = entryBar if entryBar is not None else -999
-        if posNow == 1 and (c[i] < e1 or (posType == 2 and i - eb <= invBars and c[i] < entHi)):
-            reason = "ema" if c[i] < e1 else "inval"
+        ex = e2 if p["exitMid"] else e1       # V3: EMA de salida (default EMA20)
+        if posNow == 1 and (c[i] < ex or (posType == 2 and i - eb <= invBars and c[i] < entHi)):
+            reason = "ema" if c[i] < ex else "inval"
             close_pos(i, r_fill(c[i]), reason)
-        elif posNow == -1 and (c[i] > e1 or (posType == 2 and i - eb <= invBars and c[i] > entLo)):
-            reason = "ema" if c[i] > e1 else "inval"
+        elif posNow == -1 and (c[i] > ex or (posType == 2 and i - eb <= invBars and c[i] > entLo)):
+            reason = "ema" if c[i] > ex else "inval"
             close_pos(i, r_fill(c[i]), reason)
 
         # 6) entradas (cadena else-if con prioridad B, A, C)

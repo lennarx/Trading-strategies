@@ -11,7 +11,17 @@ from .data import load
 
 TRAIN = {"BTC": "bitstamp", "ETH": "bitstamp", "XRP": "bitstamp", "LTC": "bitstamp", "ADA": "binance", "DOGE": "binance"}
 HOLDOUT = {"SOL": "binance", "LINK": "binance", "BNB": "binance", "BCH": "bitstamp", "XLM": "bitstamp"}
-SOURCES = {**TRAIN, **HOLDOUT}
+# Fase 6.1: monedas que el optimizador NUNCA vio (todas Binance spot USDT). Lista candidata, criterios de descarte y regla
+# de particion fijados en docs/PROTOCOLO.md ("Decisiones fijadas ANTES de la Fase 6"). Z1 = confirmacion de los sets
+# actuales; Z2 = reservado para el veredicto final de las variantes de la 6.4 (no se usa antes).
+FRESH_CANDIDATES = ["AAVE", "ALGO", "ATOM", "AVAX", "DOT", "ETC", "FIL", "ICP", "NEAR", "TRX", "UNI", "VET"]   # alfabetico
+FRESH_MIN_FIRST_1D = pd.Timestamp("2023-10-20")   # primera vela 1D posterior a esto = menos de 3 anios -> se descarta
+FRESH_MAX_MISSING_4H = 10                         # mas velas 4h faltantes que esto, o un hueco > 2 dias -> se descarta
+# Resultado de screen_fresh() + partition_fresh() corrido el 2026-10-21 sobre los CSV bajados: sobrevivieron las 12 (ninguna
+# descartada); alfabetico alternado. tests/test_universe.py verifica que esto siga siendo igual a la regla.
+FRESH_Z1: dict[str, str] = {s: "binance" for s in ("AAVE", "ATOM", "DOT", "FIL", "NEAR", "UNI")}
+FRESH_Z2: dict[str, str] = {s: "binance" for s in ("ALGO", "AVAX", "ETC", "ICP", "TRX", "VET")}
+SOURCES = {**TRAIN, **HOLDOUT, **FRESH_Z1, **FRESH_Z2}
 
 ENTRY_FROM = pd.Timestamp("2017-01-01")          # solo cuentan trades con entrada desde aca
 TRAIN_END = pd.Timestamp("2023-12-31 23:59:59")  # D1/H4: train = 2017-01-01..2023-12-31, test = 2024-01-01..hoy
@@ -36,6 +46,41 @@ def load_coin(sym: str, tf: str) -> pd.DataFrame:
     return load(SOURCES[sym], sym, tf, start=start, end=DATA_END[tf])
 
 
+def screen_fresh(candidates: list[str] | None = None) -> tuple[list[str], dict[str, str]]:
+    """Aplica los criterios mecanicos de descarte (PROTOCOLO, Fase 6) a los CSV de data/. Devuelve (sobrevivientes
+    ordenados alfabeticamente, {moneda: motivo del descarte}). No mira ningun resultado de la estrategia."""
+    from .fetch import path_for
+    ok, out = [], {}
+    for sym in sorted(candidates or FRESH_CANDIDATES):
+        p1, p4 = path_for("binance", sym, "1d"), path_for("binance", sym, "4h")
+        if not (p1.exists() and p4.exists()):
+            out[sym] = "no bajo (listado/red)"
+            continue
+        d1 = pd.read_csv(p1, parse_dates=["time_utc"])["time_utc"]
+        d4 = pd.read_csv(p4, parse_dates=["time_utc"])["time_utc"]
+        if d1.iloc[0] > FRESH_MIN_FIRST_1D:
+            out[sym] = f"menos de 3 anios (primera vela 1D {d1.iloc[0].date()})"
+            continue
+        expected = int((d4.iloc[-1] - d4.iloc[0]) / pd.Timedelta(hours=4)) + 1
+        missing, biggest = expected - len(d4), d4.diff().max()
+        if missing > FRESH_MAX_MISSING_4H or biggest > pd.Timedelta(days=2):
+            out[sym] = f"huecos en 4h ({missing} velas faltantes, hueco max {biggest})"
+            continue
+        ok.append(sym)
+    return ok, out
+
+
+def partition_fresh(survivors: list[str]) -> tuple[list[str], list[str]]:
+    """Alfabetico alternado sobre los sobrevivientes: 1.a, 3.a, 5.a... -> Z1; 2.a, 4.a... -> Z2."""
+    s = sorted(survivors)
+    return s[0::2], s[1::2]
+
+
+def fresh_group(group: str) -> dict[str, str]:
+    return {"z1": FRESH_Z1, "z2": FRESH_Z2}[group]
+
+
 def load_universe(tf: str, group: str = "all") -> dict[str, pd.DataFrame]:
-    coins = {"train": TRAIN, "holdout": HOLDOUT, "all": SOURCES}[group]
+    """'all' = train + holdout de la Fase 4 (no incluye las monedas frescas); 'z1' / 'z2' = monedas nuevas de la Fase 6."""
+    coins = {"train": TRAIN, "holdout": HOLDOUT, "all": {**TRAIN, **HOLDOUT}, "z1": FRESH_Z1, "z2": FRESH_Z2}[group]
     return {s: load_coin(s, tf) for s in coins}

@@ -9,15 +9,17 @@ import numpy as np
 import pandas as pd
 
 TRIM_FRAC = 0.02
-COLS = ["coin", "kind", "side", "entry_t", "exit_t", "R", "sd"]
+COLS = ["coin", "kind", "side", "entry_t", "exit_t", "R", "sd", "spct"]
 
 
 def trade_frame(res, coin: str, atr=None) -> pd.DataFrame:
     """Trades cerrados de un SimResult como DataFrame. `sd` = distancia del stop en ATR de la vela de entrada
-    (hace falta `atr`; lo usa el baseline aleatorio)."""
+    (hace falta `atr`; lo usa el baseline aleatorio). `spct` = distancia del stop en fraccion del precio de entrada
+    (la usa la cartera para respetar el tope maxLev)."""
     t = res.time
     rows = [(coin, tr.kind, tr.side, t[tr.entry_i], t[tr.exit_i], tr.r_net,
-             abs(tr.entry_px - tr.stop) / atr[tr.entry_i] if atr is not None else np.nan) for tr in res.trades]
+             abs(tr.entry_px - tr.stop) / atr[tr.entry_i] if atr is not None else np.nan,
+             abs(tr.entry_px - tr.stop) / tr.entry_px) for tr in res.trades]
     df = pd.DataFrame(rows, columns=COLS)
     df["entry_t"] = pd.to_datetime(df["entry_t"])
     df["exit_t"] = pd.to_datetime(df["exit_t"])

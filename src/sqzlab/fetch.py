@@ -35,7 +35,7 @@ def _get(url: str, params: dict) -> dict | list:
     raise RuntimeError(f"rate limit persistente en {url}")
 
 
-def fetch_bitstamp(sym: str, tf: str) -> pd.DataFrame:
+def fetch_bitstamp(sym: str, tf: str, since_ms: int | None = None) -> pd.DataFrame:
     pair = f"{sym.lower()}usd"
     step = BITSTAMP_STEP[tf]
     url = f"https://www.bitstamp.net/api/v2/ohlc/{pair}/"
@@ -49,13 +49,15 @@ def fetch_bitstamp(sym: str, tf: str) -> pd.DataFrame:
         rows.extend(page)
         first = min(int(x["timestamp"]) for x in page)
         end = first - 1
+        if since_ms is not None and first * 1000 <= since_ms:   # actualizacion incremental: ya cubrimos lo conocido
+            break
         time.sleep(0.15)
     df = pd.DataFrame(rows)
     df["time_utc"] = pd.to_datetime(df["timestamp"].astype("int64"), unit="s")
     return _clean(df)
 
 
-def fetch_bingx(sym: str, tf: str) -> pd.DataFrame:
+def fetch_bingx(sym: str, tf: str, since_ms: int | None = None) -> pd.DataFrame:
     """Perpetuo USDT-M (swap v3): velas diarias alineadas a 00:00 UTC y historia desde ~mayo-2021 (BTC/ETH).
     El spot de BingX NO sirve: limita la consulta a 380 dias y su vela diaria abre a las 16:00 UTC (UTC+8)."""
     url = "https://open-api.bingx.com/openApi/swap/v3/quote/klines"
@@ -63,7 +65,8 @@ def fetch_bingx(sym: str, tf: str) -> pd.DataFrame:
     end_ms = int(time.time() * 1000)
     rows: list[dict] = []
     empty_in_a_row = 0
-    while end_ms > 1_500_000_000_000 and empty_in_a_row < 3:  # no hay datos antes de 2017
+    floor_ms = since_ms if since_ms is not None else 1_500_000_000_000
+    while end_ms > floor_ms and empty_in_a_row < 3:  # no hay datos antes de 2017
         js = _get(url, {"symbol": f"{sym}-USDT", "interval": BINGX_INT[tf], "limit": 1000,
                         "startTime": end_ms - 1000 * step_ms, "endTime": end_ms})
         page = js.get("data") or []
@@ -81,11 +84,11 @@ def fetch_bingx(sym: str, tf: str) -> pd.DataFrame:
     return _clean(df)
 
 
-def fetch_binance(sym: str, tf: str) -> pd.DataFrame:
+def fetch_binance(sym: str, tf: str, since_ms: int | None = None) -> pd.DataFrame:
     """Spot SIMUSDT. Pagina hacia adelante con startTime (1000 velas por llamada). Sin workarounds de red."""
     url = "https://api.binance.com/api/v3/klines"
     step_ms = TF_SECONDS[tf] * 1000
-    start = 1_500_000_000_000   # 2017-07-14, antes del primer par de Binance
+    start = since_ms if since_ms is not None else 1_500_000_000_000   # 2017-07-14, antes del primer par de Binance
     rows: list[list] = []
     while True:
         page = _get(url, {"symbol": f"{sym}USDT", "interval": tf, "limit": 1000, "startTime": start})
@@ -109,8 +112,24 @@ def _clean(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def fetch(source: str, sym: str, tf: str) -> pd.DataFrame:
-    return {"bitstamp": fetch_bitstamp, "bingx": fetch_bingx, "binance": fetch_binance}[source](sym, tf)
+def fetch(source: str, sym: str, tf: str, since_ms: int | None = None) -> pd.DataFrame:
+    return {"bitstamp": fetch_bitstamp, "bingx": fetch_bingx, "binance": fetch_binance}[source](sym, tf, since_ms)
+
+
+def update_csv(source: str, sym: str, tf: str, overlap: int = 10) -> pd.DataFrame:
+    """Actualizacion incremental de data/<fuente>_<SIM>_<tf>.csv: baja solo desde `overlap` velas antes de la ultima
+    conocida y mezcla (lo nuevo pisa lo viejo en las velas repetidas). Sin CSV previo hace la descarga completa."""
+    p = path_for(source, sym, tf)
+    if not p.exists():
+        df = fetch(source, sym, tf)
+    else:
+        old = pd.read_csv(p, parse_dates=["time_utc"])
+        since = int((old["time_utc"].iloc[-1] - pd.Timedelta(seconds=overlap * TF_SECONDS[tf])).timestamp() * 1000)
+        new = fetch(source, sym, tf, since)
+        df = _clean(pd.concat([old, new]).drop_duplicates("time_utc", keep="last")) if len(new) else old
+    DATA.mkdir(exist_ok=True)
+    df.to_csv(p, index=False, date_format="%Y-%m-%d %H:%M:%S")
+    return df
 
 
 def path_for(source: str, sym: str, tf: str) -> Path:

@@ -1,0 +1,534 @@
+//@version=5
+// GENERADO por src/sqzlab/genpine.py desde ref/sqz_rsi_senales_v8.pine + params/{h4,d1,w1}.json. NO editar a mano. NO COMPILADO en TradingView.
+// El indicador marca SENALES: la strategy ademas filtra por posicion abierta (y tiene el quirk de B), asi que toda entrada de la strategy coincide con una senal de aca, no al reves.
+indicator("Squeeze + RSI + Senales AUTO (presets H4/D1/W1)", shorttitle="SQZ+RSI+SIG AUTO", overlay=false, max_labels_count=300, max_lines_count=150)
+
+// ===== Inputs: Que probar (toggles por senal y lado, como la strategy; default true = el v8 de siempre) =====
+useMine = input.bool(false, "Que probar: usar mis casillas (en vez del preset)", group="Que probar", tooltip="Apagado: las casillas de Que probar siguen al preset de la temporalidad. Prendido: valen las que tildes abajo, para aislar senales o lados.")
+m_useA = input.bool(true, "Senal A (pullback)", group="Que probar")
+m_aLong = input.bool(true, "A: COMPRAS", group="Que probar")
+m_aShort = input.bool(true, "A: VENTAS", group="Que probar")
+m_bLong = input.bool(true, "B: COMPRAS (squeeze)", group="Que probar")
+m_bShort = input.bool(true, "B: VENTAS (squeeze)", group="Que probar")
+m_cShort = input.bool(true, "C: VENTAS (techo)", group="Que probar")
+m_dLong = input.bool(true, "D: COMPRAS (divergencia alcista)", group="Que probar")
+m_dShort = input.bool(true, "D: VENTAS (divergencia bajista)", group="Que probar")
+ 
+// ===== Inputs: Squeeze =====
+m_bbLen        = input.int(20, "BB Length", minval=1, group="Squeeze")
+m_bbMult       = input.float(2.0, "BB Mult", step=0.5, group="Squeeze")
+m_kcLen        = input.int(20, "KC Length", minval=1, group="Squeeze")
+m_kcMult       = input.float(1.5, "KC Mult", step=0.5, group="Squeeze")
+m_useTrueRange = input.bool(true, "Usar True Range en KC", group="Squeeze")
+normLen      = input.int(100, "Lookback de normalizacion", minval=10, group="Squeeze")
+momHeight    = input.float(35, "Altura del histograma (0-50)", minval=5, maxval=50, group="Squeeze")
+ 
+// ===== Inputs: RSI =====
+m_rsiLen = input.int(14, "RSI Length", minval=1, group="RSI")
+rsiSrc = input.source(close, "RSI Source", group="RSI")
+m_maType = input.string("SMA", "Tipo de media del RSI", options=["SMA", "EMA", "WMA", "RMA"], group="RSI")
+m_maLen  = input.int(14, "Largo de la media del RSI", minval=1, group="RSI")
+obLvl  = input.int(70, "Sobrecompra", group="RSI")
+osLvl  = input.int(30, "Sobreventa", group="RSI")
+ 
+// ===== Inputs: Senales (generales y senal A: pullback a las EMAs en tendencia) =====
+showSig    = input.bool(true, "Mostrar senales en el grafico de precio", group="Senales")
+showLvls   = input.bool(true, "Etiquetas con SL / 1R / 2R", group="Senales", tooltip="Tildada: etiquetas con detalle (tipo de senal, SL, 1R, 2R), marcas por tipo de senal y X de salida. Destildada: solo un cartel COMPRA (verde) o VENTA (rojo) por senal, sin nada mas.")
+showEma    = input.bool(false, "Dibujar las EMAs en el grafico (Makroni ya las muestra)", group="Senales")
+allowLong  = input.bool(true, "Habilitar COMPRAS", group="Senales")
+allowShort = input.bool(true, "Habilitar VENTAS", group="Senales")
+m_emaFLen    = input.int(20, "EMA rapida", minval=1, group="Senales")
+m_emaMLen    = input.int(55, "EMA media", minval=1, group="Senales")
+m_emaSLen    = input.int(200, "EMA lenta", minval=1, group="Senales")
+m_adxLen     = input.int(14, "ADX Length", minval=1, group="Senales")
+m_adxMin     = input.float(20.0, "ADX minimo", minval=1, group="Senales")
+m_pbBars     = input.int(5, "Velas para buscar el pullback", minval=1, group="Senales")
+m_atrLen     = input.int(14, "ATR Length (stop de A)", minval=1, group="Senales")
+m_atrMult    = input.float(0.25, "Margen del stop de A (x ATR)", minval=0, step=0.05, group="Senales")
+m_useRsiF    = input.bool(true, "Senal A: exigir RSI por encima/debajo de su media", group="Senales")
+ 
+// ===== Inputs: Senal B (ruptura de squeeze) =====
+m_useB      = input.bool(true, "Activar senal B (ruptura de squeeze)", group="Senal B (squeeze)")
+m_minSqz    = input.int(6, "Velas minimas de squeeze activo", minval=2, group="Senal B (squeeze)")
+m_graceBars = input.int(2, "Velas de gracia tras liberarse el squeeze", minval=0, group="Senal B (squeeze)", tooltip="El squeeze suele liberarse en la misma vela de la ruptura. Con 0, el squeeze debe estar activo en la vela anterior. Con 2, se admite que la ruptura llegue hasta 2 velas despues de liberarse.")
+m_needMom   = input.bool(true, "Exigir momentum a favor y creciente", group="Senal B (squeeze)")
+m_needE200  = input.bool(true, "Exigir precio del lado correcto de la EMA lenta", group="Senal B (squeeze)")
+m_stopModeB = input.string("Punto medio del rango", "Stop de B", options=["Punto medio del rango", "Lado opuesto del rango"], group="Senal B (squeeze)")
+m_invBars   = input.int(3, "Velas de invalidacion (0 = apagado)", minval=0, group="Senal B (squeeze)", tooltip="Si en esas velas posteriores a la entrada el precio cierra de vuelta dentro del rango roto, se marca la salida.")
+ 
+// ===== Inputs: Senal C (reversion en techo / piso) =====
+m_useC       = input.bool(true, "Activar senal C (reversion)", group="Senal C (reversion)", tooltip="Techo: el RSI toco zona alta, cruza hacia abajo su media, el momentum cae y el precio cierra bajo la EMA rapida. Piso: lo espejo.")
+m_cHot       = input.float(65.0, "RSI debe haber llegado a (techo, venta)", minval=50, maxval=100, group="Senal C (reversion)")
+m_cCold      = input.float(35.0, "RSI debe haber bajado a (piso, compra)", minval=0, maxval=50, group="Senal C (reversion)")
+m_cLook      = input.int(10, "Velas hacia atras para buscar ese nivel del RSI", minval=2, group="Senal C (reversion)")
+m_cWin       = input.int(3, "Velas de espera tras el cruce del RSI para confirmar", minval=0, group="Senal C (reversion)", tooltip="El cruce del RSI y el cierre bajo/sobre la EMA rapida pueden caer en velas distintas. Con 0 tienen que coincidir en la misma vela.")
+m_cNeedMom   = input.bool(true, "Exigir momentum cayendo (venta) / subiendo (compra)", group="Senal C (reversion)")
+m_cNeedEma   = input.bool(true, "Exigir cierre bajo (venta) / sobre (compra) la EMA rapida", group="Senal C (reversion)")
+m_cStopBars  = input.int(7, "Velas para ubicar el extremo del stop", minval=2, group="Senal C (reversion)")
+m_cAtrMult   = input.float(0.25, "Margen del stop de C (x ATR)", minval=0, step=0.05, group="Senal C (reversion)")
+m_cMaxRisk   = input.float(3.0, "Descartar si el stop queda a mas de X ATR (0 = apagado)", minval=0, step=0.5, group="Senal C (reversion)", tooltip="Evita entrar tarde, cuando el precio ya se alejo mucho del extremo y el stop quedaria lejisimos.")
+m_cAllowLong = input.bool(false, "C: permitir COMPRAS en piso (apagado: sin evidencia a favor)", group="Senal C (reversion)", tooltip="En el backtest en SOL D1 desde 2022 hubo 10 compras de C y 1 sola ganadora (PyG -0,17%); en 6 monedas D1, 1 ganadora de 14. Las ventas (techo) siguen activas. Se puede prender para probar.")
+ 
+// ===== Inputs: Divergencias en el momentum del SQZ =====
+useDiv   = input.bool(true, "Detectar divergencias en el momentum del SQZ", group="Divergencias (SQZ)", tooltip="Alcista: el precio hace un minimo mas bajo pero el momentum hace un minimo mas alto. Bajista: el precio hace un maximo mas alto pero el momentum hace un maximo mas bajo. Solo dibuja y avisa: no abre ni cierra posiciones.")
+m_dvL      = input.int(5, "Velas a la izquierda del pivote", minval=1, group="Divergencias (SQZ)")
+m_dvR      = input.int(5, "Velas a la derecha del pivote (= retraso de la senal)", minval=1, group="Divergencias (SQZ)", tooltip="El pivote solo se confirma cuando pasaron estas velas. La divergencia se dibuja sobre el pivote pero la alerta salta recien al confirmarse, o sea con este retraso.")
+m_dvMin    = input.int(5, "Distancia minima entre pivotes (velas)", minval=1, group="Divergencias (SQZ)")
+m_dvMax    = input.int(60, "Distancia maxima entre pivotes (velas)", minval=5, group="Divergencias (SQZ)")
+m_dvZero   = input.bool(true, "Exigir pivotes del lado correcto del cero (alcista: bajo 0, bajista: sobre 0)", group="Divergencias (SQZ)")
+dvHidden = input.bool(false, "Incluir divergencias ocultas (continuacion de tendencia)", group="Divergencias (SQZ)")
+dvPrice  = input.bool(true, "Dibujar tambien la linea sobre el precio", group="Divergencias (SQZ)")
+m_useDivSig = input.bool(true, "Las divergencias generan senal de COMPRA / VENTA", group="Divergencias (SQZ)", tooltip="Divergencia alcista confirmada = COMPRA. Divergencia bajista confirmada = VENTA. Ojo: la senal sale cuando el pivote se confirma (retraso = velas a la derecha), asi que suele llegar con parte del movimiento ya hecho.")
+m_dNeedEma  = input.bool(true, "Exigir cierre sobre (compra) / bajo (venta) la EMA rapida al confirmarse", group="Divergencias (SQZ)")
+m_dAtrMult  = input.float(0.25, "Margen del stop de D (x ATR) tras el pivote", minval=0, step=0.05, group="Divergencias (SQZ)")
+m_dMaxRisk  = input.float(0.0, "Descartar si el stop queda a mas de X ATR (0 = apagado)", minval=0, step=0.5, group="Divergencias (SQZ)", tooltip="Apagado por defecto. Con 3, se descartan las divergencias que llegan tarde y dejan el stop lejisimos.")
+ 
+// ===== Inputs: Volumen (opcional) =====
+m_useVol  = input.bool(false, "Exigir volumen alto en la vela de la senal", group="Volumen (opcional)")
+volOnA  = input.bool(true, "Aplicar a la senal A", group="Volumen (opcional)")
+volOnB  = input.bool(true, "Aplicar a la senal B", group="Volumen (opcional)")
+m_volLen  = input.int(20, "Media de volumen (velas)", minval=1, group="Volumen (opcional)")
+m_volMult = input.float(1.5, "Multiplo minimo sobre la media", minval=0.1, step=0.1, group="Volumen (opcional)")
+ 
+// ===== Presets por temporalidad (GENERADO por src/sqzlab/genpine.py desde params/*.json; NO editar a mano) =====
+// Un set por temporalidad, nunca por moneda. Auto: <1d -> H4, 1d a <1w -> D1, >=1w -> W1. Solo 4h, 1D y 1W estan calibrados.
+// Los parametros optimizables siguen al preset. Las casillas de Que probar siguen al preset solo si NO tildas
+// 'usar mis casillas'. HABILITAR COMPRAS / VENTAS (master) y todo lo visual son siempre tuyos.
+// Manual = todo sale de los campos de las pestanas de arriba (sus defaults son los de D1 = v2).
+presetSel = input.string("Auto (por temporalidad)", "Preset", options=["Auto (por temporalidad)", "H4", "D1", "W1", "Manual"], group="Preset")
+tfSec    = timeframe.in_seconds()
+autoIdx  = tfSec < 86400 ? 1 : tfSec < 604800 ? 2 : 3
+presetIdx = presetSel == "H4" ? 1 : presetSel == "D1" ? 2 : presetSel == "W1" ? 3 : presetSel == "Manual" ? 0 : autoIdx
+
+useA = (useMine or presetIdx == 0) ? m_useA : presetIdx == 1 ? true : presetIdx == 2 ? true : true
+aLong = (useMine or presetIdx == 0) ? m_aLong : presetIdx == 1 ? true : presetIdx == 2 ? true : true
+aShort = (useMine or presetIdx == 0) ? m_aShort : presetIdx == 1 ? false : presetIdx == 2 ? true : true
+bLong = (useMine or presetIdx == 0) ? m_bLong : presetIdx == 1 ? true : presetIdx == 2 ? true : true
+bShort = (useMine or presetIdx == 0) ? m_bShort : presetIdx == 1 ? true : presetIdx == 2 ? true : true
+cShort = (useMine or presetIdx == 0) ? m_cShort : presetIdx == 1 ? false : presetIdx == 2 ? true : true
+dLong = (useMine or presetIdx == 0) ? m_dLong : presetIdx == 1 ? false : presetIdx == 2 ? true : true
+dShort = (useMine or presetIdx == 0) ? m_dShort : presetIdx == 1 ? false : presetIdx == 2 ? true : true
+bbLen = presetIdx == 0 ? m_bbLen : presetIdx == 1 ? 26 : presetIdx == 2 ? 20 : 20
+bbMult = presetIdx == 0 ? m_bbMult : presetIdx == 1 ? 2.0 : presetIdx == 2 ? 2.0 : 2.0
+kcLen = presetIdx == 0 ? m_kcLen : presetIdx == 1 ? 16 : presetIdx == 2 ? 20 : 20
+kcMult = presetIdx == 0 ? m_kcMult : presetIdx == 1 ? 2.0 : presetIdx == 2 ? 1.5 : 1.5
+useTrueRange = presetIdx == 0 ? m_useTrueRange : presetIdx == 1 ? true : presetIdx == 2 ? true : true
+rsiLen = presetIdx == 0 ? m_rsiLen : presetIdx == 1 ? 14 : presetIdx == 2 ? 14 : 14
+maType = presetIdx == 0 ? m_maType : presetIdx == 1 ? "SMA" : presetIdx == 2 ? "SMA" : "SMA"
+maLen = presetIdx == 0 ? m_maLen : presetIdx == 1 ? 14 : presetIdx == 2 ? 14 : 14
+emaFLen = presetIdx == 0 ? m_emaFLen : presetIdx == 1 ? 20 : presetIdx == 2 ? 20 : 20
+emaMLen = presetIdx == 0 ? m_emaMLen : presetIdx == 1 ? 55 : presetIdx == 2 ? 55 : 55
+emaSLen = presetIdx == 0 ? m_emaSLen : presetIdx == 1 ? 200 : presetIdx == 2 ? 200 : 200
+adxLen = presetIdx == 0 ? m_adxLen : presetIdx == 1 ? 14 : presetIdx == 2 ? 14 : 14
+adxMin = presetIdx == 0 ? m_adxMin : presetIdx == 1 ? 30.0 : presetIdx == 2 ? 20.0 : 20.0
+pbBars = presetIdx == 0 ? m_pbBars : presetIdx == 1 ? 3 : presetIdx == 2 ? 5 : 5
+atrLen = presetIdx == 0 ? m_atrLen : presetIdx == 1 ? 14 : presetIdx == 2 ? 14 : 14
+atrMult = presetIdx == 0 ? m_atrMult : presetIdx == 1 ? 0.1 : presetIdx == 2 ? 0.25 : 0.25
+useRsiF = presetIdx == 0 ? m_useRsiF : presetIdx == 1 ? true : presetIdx == 2 ? true : true
+useB = (useMine or presetIdx == 0) ? m_useB : presetIdx == 1 ? true : presetIdx == 2 ? true : true
+minSqz = presetIdx == 0 ? m_minSqz : presetIdx == 1 ? 12 : presetIdx == 2 ? 6 : 6
+graceBars = presetIdx == 0 ? m_graceBars : presetIdx == 1 ? 2 : presetIdx == 2 ? 2 : 2
+needMom = presetIdx == 0 ? m_needMom : presetIdx == 1 ? true : presetIdx == 2 ? true : true
+needE200 = presetIdx == 0 ? m_needE200 : presetIdx == 1 ? true : presetIdx == 2 ? true : true
+stopModeB = presetIdx == 0 ? m_stopModeB : presetIdx == 1 ? "Punto medio del rango" : presetIdx == 2 ? "Punto medio del rango" : "Punto medio del rango"
+invBars = presetIdx == 0 ? m_invBars : presetIdx == 1 ? 0 : presetIdx == 2 ? 3 : 3
+useC = (useMine or presetIdx == 0) ? m_useC : presetIdx == 1 ? false : presetIdx == 2 ? true : true
+cHot = presetIdx == 0 ? m_cHot : presetIdx == 1 ? 65.0 : presetIdx == 2 ? 65.0 : 65.0
+cCold = presetIdx == 0 ? m_cCold : presetIdx == 1 ? 35.0 : presetIdx == 2 ? 35.0 : 35.0
+cLook = presetIdx == 0 ? m_cLook : presetIdx == 1 ? 10 : presetIdx == 2 ? 10 : 10
+cWin = presetIdx == 0 ? m_cWin : presetIdx == 1 ? 3 : presetIdx == 2 ? 3 : 3
+cNeedMom = presetIdx == 0 ? m_cNeedMom : presetIdx == 1 ? true : presetIdx == 2 ? true : true
+cNeedEma = presetIdx == 0 ? m_cNeedEma : presetIdx == 1 ? true : presetIdx == 2 ? true : true
+cStopBars = presetIdx == 0 ? m_cStopBars : presetIdx == 1 ? 7 : presetIdx == 2 ? 7 : 7
+cAtrMult = presetIdx == 0 ? m_cAtrMult : presetIdx == 1 ? 0.25 : presetIdx == 2 ? 0.25 : 0.25
+cMaxRisk = presetIdx == 0 ? m_cMaxRisk : presetIdx == 1 ? 3.0 : presetIdx == 2 ? 3.0 : 3.0
+cAllowLong = (useMine or presetIdx == 0) ? m_cAllowLong : presetIdx == 1 ? false : presetIdx == 2 ? false : false
+dvL = presetIdx == 0 ? m_dvL : presetIdx == 1 ? 5 : presetIdx == 2 ? 5 : 5
+dvR = presetIdx == 0 ? m_dvR : presetIdx == 1 ? 5 : presetIdx == 2 ? 5 : 5
+dvMin = presetIdx == 0 ? m_dvMin : presetIdx == 1 ? 5 : presetIdx == 2 ? 5 : 5
+dvMax = presetIdx == 0 ? m_dvMax : presetIdx == 1 ? 60 : presetIdx == 2 ? 60 : 60
+dvZero = presetIdx == 0 ? m_dvZero : presetIdx == 1 ? true : presetIdx == 2 ? true : true
+useDivSig = (useMine or presetIdx == 0) ? m_useDivSig : presetIdx == 1 ? false : presetIdx == 2 ? true : true
+dNeedEma = presetIdx == 0 ? m_dNeedEma : presetIdx == 1 ? true : presetIdx == 2 ? true : true
+dAtrMult = presetIdx == 0 ? m_dAtrMult : presetIdx == 1 ? 0.25 : presetIdx == 2 ? 0.25 : 0.25
+dMaxRisk = presetIdx == 0 ? m_dMaxRisk : presetIdx == 1 ? 0.0 : presetIdx == 2 ? 0.0 : 0.0
+useVol = presetIdx == 0 ? m_useVol : presetIdx == 1 ? false : presetIdx == 2 ? false : false
+volLen = presetIdx == 0 ? m_volLen : presetIdx == 1 ? 20 : presetIdx == 2 ? 20 : 20
+volMult = presetIdx == 0 ? m_volMult : presetIdx == 1 ? 1.5 : presetIdx == 2 ? 1.5 : 1.5
+
+// ===== Squeeze =====
+src     = close
+basis   = ta.sma(src, bbLen)
+dev     = bbMult * ta.stdev(src, bbLen)
+upperBB = basis + dev
+lowerBB = basis - dev
+ 
+kcMa    = ta.sma(src, kcLen)
+rng     = useTrueRange ? ta.tr : (high - low)
+rngMa   = ta.sma(rng, kcLen)
+upperKC = kcMa + rngMa * kcMult
+lowerKC = kcMa - rngMa * kcMult
+ 
+sqzOn  = lowerBB > lowerKC and upperBB < upperKC
+sqzOff = lowerBB < lowerKC and upperBB > upperKC
+noSqz  = not sqzOn and not sqzOff
+ 
+avgHL = math.avg(ta.highest(high, kcLen), ta.lowest(low, kcLen))
+mom   = ta.linreg(src - math.avg(avgHL, ta.sma(close, kcLen)), kcLen, 0)
+ 
+// Normalizo el momentum para que viva en la escala 0-100 del RSI, centrado en 50
+maxAbs    = ta.highest(math.abs(mom), normLen)
+momScaled = maxAbs == 0 ? 0.0 : (mom / maxAbs) * momHeight
+ 
+momPrev = nz(mom[1])
+bcolor  = mom > 0 ? (mom > momPrev ? color.new(color.lime, 30) : color.new(color.green, 30)) : (mom < momPrev ? color.new(color.red, 30) : color.new(color.maroon, 30))
+ 
+// ===== RSI =====
+rsiVal = ta.rsi(rsiSrc, rsiLen)
+rsiSma = ta.sma(rsiVal, maLen)
+rsiEma = ta.ema(rsiVal, maLen)
+rsiWma = ta.wma(rsiVal, maLen)
+rsiRma = ta.rma(rsiVal, maLen)
+rsiMa  = maType == "EMA" ? rsiEma : maType == "WMA" ? rsiWma : maType == "RMA" ? rsiRma : rsiSma
+ 
+// ===== Base comun de senales =====
+ema1 = ta.ema(close, emaFLen)
+ema2 = ta.ema(close, emaMLen)
+ema3 = ta.ema(close, emaSLen)
+[diP, diM, adxVal] = ta.dmi(adxLen, adxLen)
+atrVal = ta.atr(atrLen)
+ 
+// Volumen opcional: si el activo no tiene datos de volumen, el filtro se ignora
+hasVol = ta.cum(nz(volume)) > 0
+volAvg = ta.sma(volume, volLen)
+volOk  = not hasVol or volume > volAvg * volMult
+volOkA = not (useVol and volOnA) or volOk
+volOkB = not (useVol and volOnB) or volOk
+ 
+// ===== Senal A: pullback a las EMAs en tendencia =====
+upTrend   = ema1 > ema2 and ema2 > ema3
+downTrend = ema1 < ema2 and ema2 < ema3
+adxOk     = adxVal >= adxMin and adxVal > nz(adxVal[1])
+ 
+touchUp = low <= ema1 ? 1.0 : 0.0
+breakUp = close < ema2 ? 1.0 : 0.0
+touchDn = high >= ema1 ? 1.0 : 0.0
+breakDn = close > ema2 ? 1.0 : 0.0
+setupLong  = ta.highest(touchUp, pbBars) == 1 and ta.highest(breakUp, pbBars) == 0
+setupShort = ta.highest(touchDn, pbBars) == 1 and ta.highest(breakDn, pbBars) == 0
+pbLow  = ta.lowest(low, pbBars)
+pbHigh = ta.highest(high, pbBars)
+ 
+trigLong  = close > ema1 and close > high[1]
+trigShort = close < ema1 and close < low[1]
+rsiLongOk  = not useRsiF or rsiVal > rsiMa
+rsiShortOk = not useRsiF or rsiVal < rsiMa
+ 
+// Solo se evalua con la vela cerrada (sin repintado)
+longRawA  = barstate.isconfirmed and allowLong and useA and aLong and upTrend and adxOk and setupLong and trigLong and rsiLongOk and volOkA
+shortRawA = barstate.isconfirmed and allowShort and useA and aShort and downTrend and adxOk and setupShort and trigShort and rsiShortOk and volOkA
+ 
+var int lastLong  = na
+var int lastShort = na
+longSigA  = false
+shortSigA = false
+if longRawA and (na(lastLong) or bar_index - lastLong > pbBars)
+    longSigA := true
+    lastLong := bar_index
+if shortRawA and (na(lastShort) or bar_index - lastShort > pbBars)
+    shortSigA := true
+    lastShort := bar_index
+ 
+// ===== Senal B: ruptura de squeeze (Bollinger dentro de Keltner) =====
+// Estado del squeeze HASTA la vela anterior (se actualiza mas abajo, despues de evaluar la senal)
+var int runLen   = 0
+var int sinceOn  = 999
+var float sqHi   = na
+var float sqLo   = na
+ 
+rHiPrev   = sqHi
+rLoPrev   = sqLo
+armedPrev = runLen >= minSqz and sinceOn <= graceBars
+ 
+momUp   = mom > 0 and mom > nz(mom[1])
+momDown = mom < 0 and mom < nz(mom[1])
+ 
+bLongRaw  = useB and armedPrev and close > rHiPrev and (not needE200 or close > ema3) and (not needMom or momUp)
+bShortRaw = useB and armedPrev and close < rLoPrev and (not needE200 or close < ema3) and (not needMom or momDown)
+ 
+longSigB  = barstate.isconfirmed and allowLong and bLong and bLongRaw and volOkB
+shortSigB = barstate.isconfirmed and allowShort and bShort and bShortRaw and volOkB
+ 
+// Actualizo el estado del squeeze con la vela actual
+if sqzOn
+    if sinceOn > 0
+        runLen := 1
+        sqHi := high
+        sqLo := low
+    else
+        runLen := runLen + 1
+        sqHi := math.max(nz(sqHi, high), high)
+        sqLo := math.min(nz(sqLo, low), low)
+    sinceOn := 0
+else
+    sinceOn := math.min(sinceOn + 1, 999)
+ 
+// Tras una senal B, el squeeze queda "gastado" hasta que se arme uno nuevo
+if longSigB or shortSigB
+    runLen := 0
+    sinceOn := 999
+ 
+// ===== Divergencias en el momentum del SQZ =====
+// Los pivotes se buscan sobre el momentum crudo (el escalado cambia con la ventana de normalizacion);
+// las lineas se dibujan sobre lo que se ve en el panel (50 + momentum escalado).
+pivL = ta.pivotlow(mom, dvL, dvR)
+pivH = ta.pivothigh(mom, dvL, dvR)
+ 
+var int   pLBar  = na
+var float pLPx   = na
+var float pLMom  = na
+var float pLPlot = na
+var int   pHBar  = na
+var float pHPx   = na
+var float pHMom  = na
+var float pHPlot = na
+ 
+bullDiv = false
+bearDiv = false
+bullHid = false
+bearHid = false
+ 
+if useDiv and not na(pivL)
+    nBar  = bar_index - dvR
+    nPx   = low[dvR]
+    nPlot = 50 + nz(momScaled[dvR])
+    okRange = not na(pLBar) and nBar - pLBar >= dvMin and nBar - pLBar <= dvMax
+    okSide  = not dvZero or (pivL < 0 and nz(pLMom) < 0)
+    if okRange and okSide
+        if nPx < pLPx and pivL > pLMom
+            bullDiv := true
+            line.new(pLBar, pLPlot, nBar, nPlot, xloc=xloc.bar_index, color=color.new(color.lime, 0), width=2)
+            label.new(nBar, nPlot, "Bull", xloc=xloc.bar_index, style=label.style_label_up, color=color.new(color.green, 10), textcolor=color.white, size=size.tiny)
+            if dvPrice
+                line.new(pLBar, pLPx, nBar, nPx, xloc=xloc.bar_index, color=color.new(color.lime, 0), width=2, force_overlay=true)
+        else if dvHidden and nPx > pLPx and pivL < pLMom
+            bullHid := true
+            line.new(pLBar, pLPlot, nBar, nPlot, xloc=xloc.bar_index, color=color.new(color.lime, 30), style=line.style_dashed, width=1)
+            label.new(nBar, nPlot, "Bull oc.", xloc=xloc.bar_index, style=label.style_label_up, color=color.new(color.green, 40), textcolor=color.white, size=size.tiny)
+            if dvPrice
+                line.new(pLBar, pLPx, nBar, nPx, xloc=xloc.bar_index, color=color.new(color.lime, 30), style=line.style_dashed, width=1, force_overlay=true)
+    pLBar  := nBar
+    pLPx   := nPx
+    pLMom  := pivL
+    pLPlot := nPlot
+ 
+if useDiv and not na(pivH)
+    nBarH  = bar_index - dvR
+    nPxH   = high[dvR]
+    nPlotH = 50 + nz(momScaled[dvR])
+    okRangeH = not na(pHBar) and nBarH - pHBar >= dvMin and nBarH - pHBar <= dvMax
+    okSideH  = not dvZero or (pivH > 0 and nz(pHMom) > 0)
+    if okRangeH and okSideH
+        if nPxH > pHPx and pivH < pHMom
+            bearDiv := true
+            line.new(pHBar, pHPlot, nBarH, nPlotH, xloc=xloc.bar_index, color=color.new(color.red, 0), width=2)
+            label.new(nBarH, nPlotH, "Bear", xloc=xloc.bar_index, style=label.style_label_down, color=color.new(color.red, 10), textcolor=color.white, size=size.tiny)
+            if dvPrice
+                line.new(pHBar, pHPx, nBarH, nPxH, xloc=xloc.bar_index, color=color.new(color.red, 0), width=2, force_overlay=true)
+        else if dvHidden and nPxH < pHPx and pivH > pHMom
+            bearHid := true
+            line.new(pHBar, pHPlot, nBarH, nPlotH, xloc=xloc.bar_index, color=color.new(color.red, 30), style=line.style_dashed, width=1)
+            label.new(nBarH, nPlotH, "Bear oc.", xloc=xloc.bar_index, style=label.style_label_down, color=color.new(color.red, 40), textcolor=color.white, size=size.tiny)
+            if dvPrice
+                line.new(pHBar, pHPx, nBarH, nPxH, xloc=xloc.bar_index, color=color.new(color.red, 30), style=line.style_dashed, width=1, force_overlay=true)
+    pHBar  := nBarH
+    pHPx   := nPxH
+    pHMom  := pivH
+    pHPlot := nPlotH
+ 
+// ===== Senal D: divergencia confirmada =====
+// El stop va en el extremo del pivote de la divergencia. Se exige (por defecto) que el cierre ya este del lado
+// correcto de la EMA rapida, porque la salida estandar es el cierre contra esa EMA y si no se cortaria en la vela siguiente.
+stopDL   = pLPx - dAtrMult * atrVal
+stopDS   = pHPx + dAtrMult * atrVal
+riskOkDL = dMaxRisk == 0 or close - stopDL <= dMaxRisk * atrVal
+riskOkDS = dMaxRisk == 0 or stopDS - close <= dMaxRisk * atrVal
+longSigD  = barstate.isconfirmed and allowLong and useDivSig and dLong and bullDiv and close > stopDL and (not dNeedEma or close > ema1) and riskOkDL
+shortSigD = barstate.isconfirmed and allowShort and useDivSig and dShort and bearDiv and close < stopDS and (not dNeedEma or close < ema1) and riskOkDS
+ 
+// ===== Posicion, stops y salidas =====
+var int pos       = 0
+var int posType   = 0
+var float stopLvl = na
+var float tgtLvl  = na
+var int entryBar  = na
+var float entHi   = na
+var float entLo   = na
+ 
+// ===== Senal C: reversion en techo / piso =====
+// Techo (venta): el RSI llego a zona alta, cruza hacia abajo su media, el momentum cae y el precio cierra bajo la EMA rapida.
+// Piso (compra): el espejo. El cruce "arma" la senal y hay cWin velas para que el precio confirme.
+rsiHotRecent  = ta.highest(rsiVal, cLook) >= cHot
+rsiColdRecent = ta.lowest(rsiVal, cLook) <= cCold
+rsiXDown      = ta.crossunder(rsiVal, rsiMa)
+rsiXUp        = ta.crossover(rsiVal, rsiMa)
+ 
+var int cArmS = na
+var int cArmL = na
+if rsiXDown and rsiHotRecent
+    cArmS := bar_index
+if rsiXUp and rsiColdRecent
+    cArmL := bar_index
+ 
+stopCS  = ta.highest(high, cStopBars) + cAtrMult * atrVal
+stopCL  = ta.lowest(low, cStopBars) - cAtrMult * atrVal
+riskOkS = cMaxRisk == 0 or stopCS - close <= cMaxRisk * atrVal
+riskOkL = cMaxRisk == 0 or close - stopCL <= cMaxRisk * atrVal
+ 
+cShortRaw = useC and bar_index - nz(cArmS, -999) <= cWin and rsiVal < rsiMa and (not cNeedMom or mom < nz(mom[1])) and (not cNeedEma or close < ema1) and riskOkS and pos != -1
+cLongRaw  = useC and cAllowLong and bar_index - nz(cArmL, -999) <= cWin and rsiVal > rsiMa and (not cNeedMom or mom > nz(mom[1])) and (not cNeedEma or close > ema1) and riskOkL and pos != 1
+ 
+shortSigC = barstate.isconfirmed and allowShort and cShort and cShortRaw
+longSigC  = barstate.isconfirmed and allowLong and cLongRaw
+ 
+// Una vez usada, la senal queda gastada hasta el proximo cruce del RSI
+if shortSigC
+    cArmS := na
+if longSigC
+    cArmL := na
+ 
+exitLong  = false
+exitShort = false
+if barstate.isconfirmed
+    if pos == 1 and (low <= stopLvl or close < ema1 or (posType == 2 and bar_index - entryBar <= invBars and close < entHi))
+        exitLong := true
+        pos := 0
+        posType := 0
+    if pos == -1 and (high >= stopLvl or close > ema1 or (posType == 2 and bar_index - entryBar <= invBars and close > entLo))
+        exitShort := true
+        pos := 0
+        posType := 0
+    if longSigB
+        pos := 1
+        posType := 2
+        entryBar := bar_index
+        entHi := rHiPrev
+        entLo := rLoPrev
+        stopLvl := stopModeB == "Punto medio del rango" ? (rHiPrev + rLoPrev) / 2 : rLoPrev
+        tgtLvl := close + (rHiPrev - rLoPrev)
+    else if shortSigB
+        pos := -1
+        posType := 2
+        entryBar := bar_index
+        entHi := rHiPrev
+        entLo := rLoPrev
+        stopLvl := stopModeB == "Punto medio del rango" ? (rHiPrev + rLoPrev) / 2 : rHiPrev
+        tgtLvl := close - (rHiPrev - rLoPrev)
+    else if longSigA
+        pos := 1
+        posType := 1
+        stopLvl := pbLow - atrMult * atrVal
+        tgtLvl := na
+    else if shortSigA
+        pos := -1
+        posType := 1
+        stopLvl := pbHigh + atrMult * atrVal
+        tgtLvl := na
+    else if longSigC
+        pos := 1
+        posType := 3
+        stopLvl := stopCL
+        tgtLvl := na
+    else if shortSigC
+        pos := -1
+        posType := 3
+        stopLvl := stopCS
+        tgtLvl := na
+    else if longSigD and pos != 1
+        pos := 1
+        posType := 4
+        stopLvl := stopDL
+        tgtLvl := na
+    else if shortSigD and pos != -1
+        pos := -1
+        posType := 4
+        stopLvl := stopDS
+        tgtLvl := na
+ 
+longSig  = longSigA or longSigB or longSigC or longSigD
+shortSig = shortSigA or shortSigB or shortSigC or shortSigD
+ 
+// ===== Etiquetas con stop y niveles 1R / 2R (la gestion en tercios es manual) =====
+if showSig and showLvls and longSig
+    isBL  = posType == 2
+    riskL = close - stopLvl
+    tagL  = isBL ? " (squeeze)" : posType == 3 ? " (reversion)" : posType == 4 ? " (divergencia)" : ""
+    txtL  = "COMPRA" + tagL +"\nSL " + str.tostring(stopLvl, format.mintick) + "\n1R " + str.tostring(close + riskL, format.mintick) + "\n2R " + str.tostring(close + 2 * riskL, format.mintick) + (isBL ? "\nObj rango " + str.tostring(tgtLvl, format.mintick) : "")
+    label.new(bar_index, low, txtL, style=label.style_label_up, color=color.new(color.green, 20), textcolor=color.white, size=size.small, force_overlay=true)
+if showSig and showLvls and shortSig
+    isBS  = posType == 2
+    riskS = stopLvl - close
+    tagS  = isBS ? " (squeeze)" : posType == 3 ? " (reversion)" : posType == 4 ? " (divergencia)" : ""
+    txtS  = "VENTA" + tagS +"\nSL " + str.tostring(stopLvl, format.mintick) + "\n1R " + str.tostring(close - riskS, format.mintick) + "\n2R " + str.tostring(close - 2 * riskS, format.mintick) + (isBS ? "\nObj rango " + str.tostring(tgtLvl, format.mintick) : "")
+    label.new(bar_index, high, txtS, style=label.style_label_down, color=color.new(color.red, 20), textcolor=color.white, size=size.small, force_overlay=true)
+ 
+// Modo simple (casilla destildada): solo COMPRA verde / VENTA roja, sin importar el tipo de senal
+if showSig and not showLvls and longSig
+    label.new(bar_index, low, "COMPRA", style=label.style_label_up, color=color.new(color.green, 20), textcolor=color.white, size=size.small, force_overlay=true)
+if showSig and not showLvls and shortSig
+    label.new(bar_index, high, "VENTA", style=label.style_label_down, color=color.new(color.red, 20), textcolor=color.white, size=size.small, force_overlay=true)
+ 
+// ===== Plots: panel inferior =====
+hOb  = hline(obLvl, "Sobrecompra", color=color.new(color.gray, 40), linestyle=hline.style_dashed)
+hMid = hline(50, "Mitad", color=color.new(color.gray, 60), linestyle=hline.style_dotted)
+hOs  = hline(osLvl, "Sobreventa", color=color.new(color.gray, 40), linestyle=hline.style_dashed)
+fill(hOb, hOs, color=color.new(color.purple, 93))
+ 
+plot(50 + momScaled, "Momentum", color=bcolor, style=plot.style_columns, histbase=50)
+plot(rsiVal, "RSI", color=color.new(#7E57C2, 0), linewidth=2)
+plot(rsiMa, "Media del RSI (direccion)", color=color.new(color.yellow, 0), linewidth=2)
+ 
+// Puntos del squeeze sobre la linea del 50: naranja = comprimido, gris = liberado, azul = neutro
+sqzColor = sqzOn ? color.orange : sqzOff ? color.gray : color.blue
+plot(50, "Squeeze", color=sqzColor, style=plot.style_cross, linewidth=2)
+ 
+// ===== Plots: sobre el grafico de precio (force_overlay) =====
+// A = triangulos, B (squeeze) = rombos, C (reversion) = flechas azules, salidas = X naranja
+plotshape(showSig and showLvls and longSig and posType == 3, "Compra C (reversion)", style=shape.arrowup, location=location.belowbar, color=color.new(#2962FF, 0), size=size.normal, force_overlay=true)
+plotshape(showSig and showLvls and shortSig and posType == 3, "Venta C (reversion)", style=shape.arrowdown, location=location.abovebar, color=color.new(#2962FF, 0), size=size.normal, force_overlay=true)
+plotshape(showSig and showLvls and longSig and posType == 1, "Compra A", style=shape.triangleup, location=location.belowbar, color=color.lime, size=size.small, force_overlay=true)
+plotshape(showSig and showLvls and shortSig and posType == 1, "Venta A", style=shape.triangledown, location=location.abovebar, color=color.red, size=size.small, force_overlay=true)
+plotshape(showSig and showLvls and longSig and posType == 2, "Compra B (squeeze)", style=shape.diamond, location=location.belowbar, color=color.aqua, size=size.small, force_overlay=true)
+plotshape(showSig and showLvls and shortSig and posType == 2, "Venta B (squeeze)", style=shape.diamond, location=location.abovebar, color=color.fuchsia, size=size.small, force_overlay=true)
+plotshape(showSig and showLvls and longSig and posType == 4, "Compra D (divergencia)", style=shape.square, location=location.belowbar, color=color.yellow, size=size.small, force_overlay=true)
+plotshape(showSig and showLvls and shortSig and posType == 4, "Venta D (divergencia)", style=shape.square, location=location.abovebar, color=color.yellow, size=size.small, force_overlay=true)
+plotshape(showSig and showLvls and exitLong, "Salida de compra", style=shape.xcross, location=location.abovebar, color=color.orange, size=size.tiny, force_overlay=true)
+plotshape(showSig and showLvls and exitShort, "Salida de venta", style=shape.xcross, location=location.belowbar, color=color.orange, size=size.tiny, force_overlay=true)
+ 
+plot(showEma ? ema1 : na, "EMA rapida", color=color.new(color.aqua, 0), force_overlay=true)
+plot(showEma ? ema2 : na, "EMA media", color=color.new(color.orange, 0), force_overlay=true)
+plot(showEma ? ema3 : na, "EMA lenta", color=color.new(color.blue, 0), force_overlay=true)
+ 
+// ===== Alertas =====
+alertcondition(longSig, "Senal de COMPRA (A, B o C)", "SQZ+RSI+SIG: senal de COMPRA")
+alertcondition(shortSig, "Senal de VENTA (A, B o C)", "SQZ+RSI+SIG: senal de VENTA")
+alertcondition(longSigC and posType == 3, "COMPRA C (reversion)", "SQZ+RSI+SIG: COMPRA por reversion")
+alertcondition(shortSigC and posType == 3, "VENTA C (reversion)", "SQZ+RSI+SIG: VENTA por reversion")
+alertcondition(longSigB, "COMPRA B (squeeze)", "SQZ+RSI+SIG: COMPRA por ruptura de squeeze")
+alertcondition(shortSigB, "VENTA B (squeeze)", "SQZ+RSI+SIG: VENTA por ruptura de squeeze")
+alertcondition(exitLong, "Salida de compra", "SQZ+RSI+SIG: salida de COMPRA")
+alertcondition(exitShort, "Salida de venta", "SQZ+RSI+SIG: salida de VENTA")
+alertcondition(bullDiv, "Divergencia ALCISTA (momentum SQZ)", "SQZ+RSI+SIG: divergencia alcista en el momentum del SQZ")
+alertcondition(bearDiv, "Divergencia BAJISTA (momentum SQZ)", "SQZ+RSI+SIG: divergencia bajista en el momentum del SQZ")
+alertcondition(bullHid, "Divergencia oculta ALCISTA (SQZ)", "SQZ+RSI+SIG: divergencia oculta alcista en el momentum del SQZ")
+alertcondition(bearHid, "Divergencia oculta BAJISTA (SQZ)", "SQZ+RSI+SIG: divergencia oculta bajista en el momentum del SQZ")
+alertcondition(longSigD, "COMPRA D (divergencia)", "SQZ+RSI+SIG: COMPRA por divergencia alcista")
+alertcondition(shortSigD, "VENTA D (divergencia)", "SQZ+RSI+SIG: VENTA por divergencia bajista")
+ 
+
+// ===== Cartel con el preset en uso =====
+presetName = presetIdx == 0 ? "Manual" : presetIdx == 1 ? "H4" : presetIdx == 2 ? "D1" : "W1"
+tfCalibrated = tfSec == 14400 or tfSec == 86400 or tfSec == 604800
+var table infoTbl = table.new(position.top_right, 1, 1)
+if barstate.islast
+    table.cell(infoTbl, 0, 0, "Preset: " + presetName + (useMine ? " | casillas propias" : "") + (presetIdx == 0 or tfCalibrated ? "" : " (TF no calibrado)"), text_color=color.white, bgcolor=color.new(color.gray, 30))

@@ -17,3 +17,26 @@ Notas de las corridas del 2026-10-21 (hechas con Claude in Chrome, plan gratis, 
 - Para compilar hubo que sacar "SQZ+RSI BT" (la v1 cargada) del grafico: el plan gratis admite 2 indicadores y uno es Makroni. Esa v1 **no estaba en "My scripts"** (solo vivia en el layout). La restauré con "Deshacer" del grafico (ETHUSD 4h con su "SQZ+RSI BT"); verificado a ojo comparando la leyenda, no contra el codigo. Los scripts de prueba **no se guardaron** en la cuenta ("Untitled script" en el editor).
 - Los scripts de la fila 1 a 8 se pegaron por portapapeles; las 4 versiones generadas compilan.
 - Cuenta de pruebas manuales: 8 corridas, todas de verificacion de un set ya elegido en Python (ninguna se uso para tocar parametros).
+
+## Tanda de la Fase 6.6 (2026-10-21, Claude in Chrome, plan gratis; el usuario autorizó reemplazar el slot de "SQZ+RSI BT" y NO guardar scripts en la cuenta)
+
+| # | Script / versión | Símbolo | TF | Compiló | Resultado TV | Port (mismos números) | Notas |
+|---|---|---|---|---|---|---|---|
+| 9 | pine/sqz_rsi_senales_unified.pine (indicador "SQZ+RSI+SIG AUTO") | ETHUSD (Bitstamp) | 4h | **SI** compiló (pegado en Pine Editor, "Add to chart", sin errores) | corre; cartel **"Preset: H4"** | n/a (indicador) | primera vez que se prueba un indicador generado. `table.new` en un indicator anduvo |
+| 10 | idem indicador | SOLUSDT (Binance) | 4h | si | carteles con SL de 7 señales B (fechas UTC de la vela de entrada): 8-ago L 73,74; 14-ago S 76,19; 19-ago L 75,75; 2-jun S 81,27; 6-may L 85,11; 2-abr S 83,37; 25-mar L 89,07 | port H4: stops 73,74 / 76,195 / 75,755 / 81,265 / 85,105 / 83,365 / 89,075 | **7 de 7 coinciden**; las X naranjas de salida del indicador caen donde sale el port (ej. 7-jun) |
+| 11 | idem indicador | SOLUSDT | 1D | si | carteles: C venta SL 84,68 (11-jul), B venta SL 74,91 (1-ago), B compra SL 75,97 (21-ago), C venta SL 124,92 (7-oct) | port D1: 84,677 / 74,910 / 75,970 / 124,923 | **4 de 4 coinciden**. Además el indicador marca una B compra (SL 105,07, fines de sep) que el port NO toma porque la strategy ya estaba larga (A larga del 18-sep): diferencia esperada. **No verificado** el cartel de la A larga del 18-sep (se tapaba con otros) |
+| 12 | idem indicador | SOLUSDT | 1D y 1W | si | cartel **"Preset: D1"** en 1D y **"Preset: W1"** en 1W | n/a | cartel verificado en los 3 presets |
+| 13 | pine/h4/sqz_rsi_strategy_h4.pine (ya compilado en la tanda 1, se re-pegó) | LINKUSDT (Binance) | 4h | si | 35 trades, −762,39 (−7,62%), PF 0,55, 9/35, DD 882,75 | 35 / −761,80 / PF 0,550 / 9 / DD 793,81 | OK (DD de TV ≠ port: ya sabido) |
+| 14 | idem H4 | BNBUSDT (Binance) | 4h | si | 40 trades, +1.277,04, PF 1,765, 17/40, DD 639,92 | 40 / +1.277,36 / PF 1,765 / 17 / DD 583,54 | OK |
+| 15 | idem H4 | BCHUSD (Bitstamp) | 4h | si | 24 trades, −438,98, PF 0,653, 5/24 | 24 / −438,70 / PF 0,653 / 5 | OK (leído con el buscador de elementos, no con el texto completo) |
+| 16 | idem H4 | XLMUSD (Bitstamp) | 4h | si | 23 trades, −641,59, PF 0,422, 5/23, DD 724,42 | 23 / −641,00 / PF 0,422 / 5 / DD 681,96 | OK (idem lectura) |
+| 17 | pine/d1/sqz_rsi_strategy_d1.pine ("SQZ+RSI BT D1", se pegó y se actualizó sobre la H4 con "Update on chart") | BTCUSD (Bitstamp) | 1D | si | rango 17-ago-2011 a 20-oct-2026: **113 trades**, +65.954,74, PF 4,872, 42/113, DD 2.846,52 | **115** / +59.515,80 / PF 4,907 / 43 / DD 2.526,36 | **NO coincide: el port tiene 2 trades de más** (misma diferencia que con la v1). Ver "BTC 1D: dónde está la diferencia" abajo |
+
+**BTC 1D: dónde está la diferencia (lista de operaciones de TV ordenada ascendente, trades 1 a 32 leídos; port con params/d1.json):**
+- TV y port coinciden (lado, fecha de entrada y salida) en los primeros 32 trades **salvo tres puntos, todos en 2012 y 2016 (precios de 5 a 700 USD):**
+  1. **2012-04-07 A corta (entrada 4,70, salida 11-abr): la toma el port, TV NO.**
+  2. **2012-05-31: TV entra una B larga (sale 19-ago, +1.240,04); el port entra la B larga el 2012-07-09** (misma salida 19-ago).
+  3. **2016-01-07 A larga (entrada 457,00, salida 12-ene): la toma el port, TV NO** (TV pasa del trade 22, 26-nov-2015 a 26-dic-2015, directo al 23, entrada 13-feb-2016).
+- Eso explica los 2 trades de más (115 vs 113). **Causa NO identificada:** hipótesis (no verificada) = diferencias de OHLC entre la API de Bitstamp y el historial de TradingView en esas velas, o un borde de ADX/EMA con datos viejos. Mintick ya estaba descartado. No bloquea la optimización (entradas desde 2017) pero 2 de las 3 diferencias son en señales A.
+- Cuenta de pruebas manuales: tanda 6.6 = 9 corridas (filas 9 a 17). Total desde la Fase 5: 17. Ninguna se usó para tocar parámetros.
+- Gráfico del usuario: se sacó "SQZ+RSI BT" (con permiso), se probó, y se restauró con "Deshacer" (queda ETHUSD 4h con "SQZ+RSI BT" en su panel, **verificado a ojo**; el layout muestra cambios sin guardar). No se guardó ningún script en la cuenta.

@@ -1,6 +1,6 @@
 # Optimizacion D1 (generado por `python -m sqzlab.optimize`)
 
-- **Pruebas (combinaciones evaluadas) hasta ahora: 584** (etapa 0: 1, etapa 1: 8, etapa 2: 483, etapa 3: 81, etapa 4: 11)
+- **Pruebas (combinaciones evaluadas) hasta ahora: 617** (etapa 0: 1, etapa 1: 8, etapa 2: 483, etapa 3: 81, etapa 4: 44)
 - Veredicto: SIN CANDIDATO: OOS n=278, exp=0.336R, PF=1.87, baseline p95=0.174R, sin el mejor=0.189R, recortada=-0.029R
 
 ## Etapa 0: referencia (defaults v2) en monedas train, entradas 2017-01-01..2023-12-31
@@ -131,14 +131,36 @@ Centro: n=181, exp=0.927R, exp recortada=0.374R, PF=3.87. Criterio: la expectati
 
 | param | vecino | valor | n | exp | exp_trim | pf | ok |
 |---|---|---|---|---|---|---|---|
+| adxMin | -20% | 12.000 | 186 | 0.901 | 0.363 | 3.677 | True |
+| adxMin | +20% | 18.000 | 168 | 0.993 | 0.398 | 4.336 | True |
+| pbBars | -20% | 2.000 | 172 | 0.994 | 0.413 | 4.279 | True |
+| pbBars | +20% | 4.000 | 183 | 0.741 | 0.348 | 3.269 | True |
 | atrMult | -20% | 0.080 | 181 | 0.935 | 0.376 | 3.887 | True |
 | atrMult | +20% | 0.120 | 179 | 0.945 | 0.392 | 4.040 | True |
+| minSqz | -20% | 6.000 | 196 | 0.824 | 0.312 | 3.407 | True |
+| minSqz | +20% | 10.000 | 164 | 0.987 | 0.377 | 4.037 | True |
+| graceBars | -20% | 1.000 | 181 | 0.927 | 0.374 | 3.866 | True |
+| graceBars | +20% | 2.000 | 185 | 0.919 | 0.379 | 3.912 | True |
+| invBars | -20% | 1.000 | 181 | 0.926 | 0.373 | 3.792 | True |
+| invBars | +20% | 3.000 | 181 | 0.912 | 0.359 | 3.848 | True |
+| dvL | -20% | 4.000 | 180 | 0.935 | 0.380 | 3.905 | True |
+| dvL | +20% | 6.000 | 181 | 0.927 | 0.374 | 3.866 | True |
+| dvR | -20% | 4.000 | 174 | 0.980 | 0.406 | 4.022 | True |
+| dvR | +20% | 6.000 | 180 | 0.890 | 0.333 | 3.711 | True |
+| dvMin | -20% | 4.000 | 181 | 0.927 | 0.374 | 3.866 | True |
+| dvMin | +20% | 6.000 | 181 | 0.927 | 0.374 | 3.866 | True |
+| dvMax | -20% | 80.000 | 181 | 0.927 | 0.374 | 3.866 | True |
+| dvMax | +20% | 120.000 | 181 | 0.927 | 0.374 | 3.866 | True |
 | dAtrMult | -20% | 0.400 | 181 | 0.929 | 0.376 | 3.862 | True |
 | dAtrMult | +20% | 0.600 | 181 | 0.925 | 0.372 | 3.869 | True |
 | dMaxRisk | -20% | 4.000 | 181 | 0.926 | 0.373 | 3.856 | True |
 | dMaxRisk | +20% | 6.000 | 181 | 0.927 | 0.374 | 3.866 | True |
+| bbLen | -20% | 16.000 | 184 | 0.771 | 0.255 | 3.256 | True |
+| bbLen | +20% | 24.000 | 126 | 1.273 | 0.595 | 5.049 | True |
 | bbMult | -20% | 2.000 | 238 | 0.723 | 0.292 | 3.329 | True |
 | bbMult | +20% | 3.000 | 135 | 1.184 | 0.504 | 4.282 | True |
+| kcLen | -20% | 16.000 | 144 | 1.155 | 0.518 | 4.462 | True |
+| kcLen | +20% | 24.000 | 162 | 0.931 | 0.326 | 3.855 | True |
 | kcMult | -20% | 1.600 | 123 | 1.058 | 0.397 | 3.986 | True |
 | kcMult | +20% | 2.400 | 227 | 0.700 | 0.247 | 3.201 | True |
 

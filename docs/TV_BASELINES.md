@@ -44,3 +44,10 @@ SOL: **no corrida todavía** (pendiente).
 - D (en v2): pivotes con `ta.pivotlow/pivothigh(mom, dvL, dvR)` sobre el momentum crudo; la señal llega `dvR` velas tarde. **Verificá en la calibración** cómo trata TradingView los empates en pivotes y reproducilo exacto.
 - Arranque: **[CORREGIDO en la calibración del 2026-10-20]** la EMA de TradingView usa **semilla SMA** (vale `na` hasta tener n velas), NO arranca en el primer valor: con eso BTC 4h cierra en 153 trades y PnL 2.086,98 vs 2.086,75 de TV. RMA también usa semilla SMA. (Texto original, ya desmentido: «EMA arranca en el primer valor».) El port actual salta velas hasta que no haya NaN. Eso puede dar diferencias en los primeros trades (BTC desde 2011): documentalas, no las "arregles" a ciegas.
 - Velas semanales: **no asumas** el día de inicio de la semana de TradingView; descubrilo calibrando contra la base semanal.
+
+## Agregado Fase 6 (2026-10-21): SOL y BTC 1D con los scripts de `params/*.json`
+
+**Ojo: estas filas NO son A+B+C con defaults (la v1).** Son los scripts generados (H4 optimizado; D1 y W1 = v2) corridos en TradingView el 2026-10-21; el detalle está en `results/tv_log.md` filas 3 a 8 y 17.
+- SOLUSDT (Binance): 4h (desde 2023-12-31) 29 trades, +2.143,50, PF 3,336; 1D (desde 2020-08-10) 44 trades, +1.501,18, PF 2,131; 1W 5 trades, −30,01, PF 0,639. El port coincide en trades, ganadoras y PF (PnL dentro de ±0,02% en 4h; en 1D el port da +1.495,89).
+- BTCUSD (Bitstamp) 1D, historia completa 2011-hoy, script D1 (= v2): TV **113 trades, +65.954,74, PF 4,872**; port 115 trades, +59.515,80, PF 4,907. **Localizado (no explicado):** el port toma de más la A corta del 2012-04-07 y la A larga del 2016-01-07, y entra la B larga del 2012-07-09 donde TV entra el 2012-05-31. Todo lo demás coincide en los primeros 32 trades. Ver `results/tv_log.md` (sección Fase 6.6).
+- Holdout H4 (2024-01 a hoy) contra el port: LINK, BNB, BCH, XLM coinciden (trades, ganadoras, PF; PnL a ±0,3 USD).

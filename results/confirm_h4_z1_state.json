@@ -1,0 +1,23 @@
+{
+ "looks": 1,
+ "verdict": "NO CONFIRMA",
+ "n": 446,
+ "exp": 0.07945079751147799,
+ "exp_trim": -0.08895213200962968,
+ "pf": 1.2022327178067265,
+ "coins": [
+  "AAVE",
+  "ATOM",
+  "DOT",
+  "FIL",
+  "NEAR",
+  "UNI"
+ ],
+ "crit": {
+  "expectativa > 0,2R": false,
+  "expectativa > p95 del baseline": true,
+  "n >= 100": true,
+  "sin el mejor trade > 0": true,
+  "expectativa recortada (sin 2% mejores) > 0": false
+ }
+}

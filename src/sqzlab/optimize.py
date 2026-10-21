@@ -204,6 +204,28 @@ def switches(legs: set) -> dict:
     return out
 
 
+def coin_series(code: str, sym: str, win: tuple, cache: dict | None = None) -> CoinSeries:
+    """Arrays de la moneda para el baseline (indicadores de la v2: la EMA rapida y el ATR no dependen del squeeze)."""
+    key = (sym, str(win))
+    if cache is not None and key in cache:
+        return cache[key]
+    df = U.load_coin(sym, code)
+    cs = CoinSeries(compute(df, {**DEFAULTS, **BASE}), df["time_utc"].to_numpy(), *win)
+    if cache is not None:
+        cache[key] = cs
+    return cs
+
+
+def random_baseline_for(tf: str, tr: pd.DataFrame, wins: dict[str, tuple], tag: str, reps: int,
+                        cache: dict | None = None) -> dict:
+    """Baseline aleatorio con las cantidades/lados de `tr`; `wins` = ventana de entrada por moneda."""
+    if len(tr) == 0:
+        return dict(p50=0.0, p95=0.0, mean=0.0, std=0.0, reps=0, kd=0.0)
+    kd = float(np.nanmedian(tr["sd"]))
+    coins = {s: coin_series(U.TF_CODE[tf], s, w, cache) for s, w in wins.items() if s in set(tr["coin"])}
+    return random_baseline(coins, side_counts(tr), kd, reps, seed_tag=f"{tf}:{tag}")
+
+
 # ----------------------------------------------------------------------------------------------------------------
 # Corrida por etapas
 # ----------------------------------------------------------------------------------------------------------------
@@ -240,19 +262,10 @@ class Run:
         self.st["reports"][str(stage)] = text
 
     def series(self, sym: str, win: tuple) -> CoinSeries:
-        key = (sym, str(win))
-        if key not in self._series:
-            df = U.load_coin(sym, self.code)
-            self._series[key] = CoinSeries(compute(df, {**DEFAULTS, **BASE}), df["time_utc"].to_numpy(), *win)
-        return self._series[key]
+        return coin_series(self.code, sym, win, self._series)
 
     def baseline(self, tr: pd.DataFrame, wins: dict[str, tuple], tag: str, reps: int | None = None) -> dict:
-        """Baseline aleatorio con las cantidades/lados de `tr`; `wins` = ventana de entrada por moneda."""
-        if len(tr) == 0:
-            return dict(p50=0.0, p95=0.0, mean=0.0, std=0.0, reps=0, kd=0.0)
-        kd = float(np.nanmedian(tr["sd"]))
-        coins = {s: self.series(s, w) for s, w in wins.items() if s in set(tr["coin"])}
-        return random_baseline(coins, side_counts(tr), kd, reps or self.reps, seed_tag=f"{self.tf}:{tag}")
+        return random_baseline_for(self.tf, tr, wins, tag, reps or self.reps, self._series)
 
     def train_wins(self) -> dict:
         return {s: self.win for s in self.train}
@@ -533,6 +546,13 @@ def _clamp(k: str, v):
 # ----------------------------------------------------------------------------------------------------------------
 # Entregables: params/<tf>.json, Pine regenerados, candidates/<tf>.md
 # ----------------------------------------------------------------------------------------------------------------
+def diff_vs_v2(final: dict, v2: dict) -> list[tuple]:
+    """(clave, valor v2, valor candidato) de lo que cambia respecto de los defaults de ref/sqz_rsi_strategy_v2.pine.
+    Se compara contra la v2 y NO contra params/<tf>.json: ese archivo ya tiene el set escrito (bug de la Fase 5)."""
+    return [(k, v2[k], float(v) if isinstance(v2[k], float) else v)
+            for k, v in final.items() if k in v2 and not k.startswith("_") and v2[k] != v]
+
+
 def write_entregables(run: Run) -> None:
     from . import genpine
     from .calibrate import stats
@@ -562,12 +582,10 @@ def write_entregables(run: Run) -> None:
         return
     path = ROOT / "params" / f"{tf}.json"
     doc = json.loads(path.read_text(encoding="utf-8"))
-    changed = []
     for k, v in final.items():
         if k in doc and not k.startswith("_") and doc[k] != v:
-            old = doc[k]
-            doc[k] = float(v) if isinstance(old, float) else v
-            changed.append((k, old, doc[k]))
+            doc[k] = float(v) if isinstance(doc[k], float) else v
+    changed = diff_vs_v2(final, genpine.pine_defaults(genpine.read_ref()))
     note = "HEREDADO de D1 (sin muestra propia), " if run.st["no_sample"] else ""
     doc["_meta"]["status"] = f"OPTIMIZADO {pd.Timestamp.today().date()}, {note}{run.st['tests']} pruebas (ver results/opt_{tf}.md)"
     path.write_text(json.dumps(doc, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")

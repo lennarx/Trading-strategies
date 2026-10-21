@@ -46,3 +46,11 @@ def test_optimizer_is_deterministic_on_two_combos():
     a = O.score_grid(grid, ev.run(grid.combos()), win, 5)
     b = O.score_grid(grid, ev.run(grid.combos()), win, 5)
     assert a.equals(b) and len(a) == 2 and (a["n"] > 0).all()
+
+
+def test_diff_vs_v2_compares_against_v2_not_against_written_params():
+    v2 = {"adxMin": 20.0, "pbBars": 5, "aShort": True, "atrMult": 0.25}
+    final = {"adxMin": 30, "pbBars": 3, "aShort": False, "atrMult": 0.25, "_meta": 1}
+    got = O.diff_vs_v2(final, v2)
+    assert got == [("adxMin", 20.0, 30.0), ("pbBars", 5, 3), ("aShort", True, False)]
+    assert isinstance(got[0][2], float)
