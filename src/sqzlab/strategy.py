@@ -95,10 +95,12 @@ class SimResult:
         return pd.DataFrame(rows)
 
 
-def simulate(df: pd.DataFrame, **over) -> SimResult:
+def simulate(df: pd.DataFrame, ind: dict | None = None, **over) -> SimResult:
+    """`ind`: salida de indicators.compute(df, p) ya calculada (el optimizador la cachea por set de parametros de
+    indicadores); tiene que corresponder a los mismos parametros de indicadores que `over`. Sin `ind`, se calcula."""
     p = dict(DEFAULTS)
     p.update(over)
-    d = compute(df, p)
+    d = ind if ind is not None else compute(df, p)
     o, h, l, c = d["open"], d["high"], d["low"], d["close"]
     n = len(c)
     mom, rsi, rsiMa = d["mom"], d["rsi"], d["rsiMa"]

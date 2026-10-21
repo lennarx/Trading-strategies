@@ -45,4 +45,5 @@ Es un trabajo de muchas sesiones y el repo es la única memoria. **Al empezar: l
   - Calibración (Fase 2): `python -m sqzlab.calibrate` (imprime tabla y escribe `results/calibration.md`).
   - Generar Pine desde `params/*.json`: `python -m sqzlab.genpine` (`--init-params` crea los JSON solo si no existen).
   - Tests: `python -m pytest -q`.
-- Optimización (Fase 4): todavía no existe; cuando exista, documentar el comando acá.
+  - Optimización (Fase 4): `python -m sqzlab.optimize --tf d1|h4|w1 [--stage all|0..5|write] [--workers 16] [--reps 500]`. `all` corre las etapas 0 a 5 de cero (D1 ~30 s, H4 ~3 min), escribe `results/opt_<tf>.md` (+ CSV por etapa y `opt_<tf>_state.json`), y si el fuera de muestra pasa los criterios fijados en `docs/PROTOCOLO.md` escribe `params/<tf>.json`, regenera los Pine y arma `candidates/<tf>.md`. El fuera de muestra (etapa 5) se mira **una sola vez**: el optimizador se niega a repetirlo sin `--force-oos`. `--stage write` solo reescribe params/candidates desde el estado.
+  - Estado (2026-10-21): H4 optimizado y validado en TV; D1 y W1 quedan en los defaults v2 (ver HANDOFF sección 8).

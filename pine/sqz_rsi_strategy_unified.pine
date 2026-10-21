@@ -95,20 +95,20 @@ presetIdx = presetSel == "H4" ? 1 : presetSel == "D1" ? 2 : presetSel == "W1" ? 
 
 useA = (useMine or presetIdx == 0) ? m_useA : presetIdx == 1 ? true : presetIdx == 2 ? true : true
 useB = (useMine or presetIdx == 0) ? m_useB : presetIdx == 1 ? true : presetIdx == 2 ? true : true
-useC = (useMine or presetIdx == 0) ? m_useC : presetIdx == 1 ? true : presetIdx == 2 ? true : true
+useC = (useMine or presetIdx == 0) ? m_useC : presetIdx == 1 ? false : presetIdx == 2 ? true : true
 aLong = (useMine or presetIdx == 0) ? m_aLong : presetIdx == 1 ? true : presetIdx == 2 ? true : true
-aShort = (useMine or presetIdx == 0) ? m_aShort : presetIdx == 1 ? true : presetIdx == 2 ? true : true
+aShort = (useMine or presetIdx == 0) ? m_aShort : presetIdx == 1 ? false : presetIdx == 2 ? true : true
 bLong = (useMine or presetIdx == 0) ? m_bLong : presetIdx == 1 ? true : presetIdx == 2 ? true : true
 bShort = (useMine or presetIdx == 0) ? m_bShort : presetIdx == 1 ? true : presetIdx == 2 ? true : true
 cLong = (useMine or presetIdx == 0) ? m_cLong : presetIdx == 1 ? false : presetIdx == 2 ? false : false
-cShort = (useMine or presetIdx == 0) ? m_cShort : presetIdx == 1 ? true : presetIdx == 2 ? true : true
-useD = (useMine or presetIdx == 0) ? m_useD : presetIdx == 1 ? true : presetIdx == 2 ? true : true
-dLong = (useMine or presetIdx == 0) ? m_dLong : presetIdx == 1 ? true : presetIdx == 2 ? true : true
-dShort = (useMine or presetIdx == 0) ? m_dShort : presetIdx == 1 ? true : presetIdx == 2 ? true : true
-bbLen = presetIdx == 0 ? m_bbLen : presetIdx == 1 ? 20 : presetIdx == 2 ? 20 : 20
+cShort = (useMine or presetIdx == 0) ? m_cShort : presetIdx == 1 ? false : presetIdx == 2 ? true : true
+useD = (useMine or presetIdx == 0) ? m_useD : presetIdx == 1 ? false : presetIdx == 2 ? true : true
+dLong = (useMine or presetIdx == 0) ? m_dLong : presetIdx == 1 ? false : presetIdx == 2 ? true : true
+dShort = (useMine or presetIdx == 0) ? m_dShort : presetIdx == 1 ? false : presetIdx == 2 ? true : true
+bbLen = presetIdx == 0 ? m_bbLen : presetIdx == 1 ? 26 : presetIdx == 2 ? 20 : 20
 bbMult = presetIdx == 0 ? m_bbMult : presetIdx == 1 ? 2.0 : presetIdx == 2 ? 2.0 : 2.0
-kcLen = presetIdx == 0 ? m_kcLen : presetIdx == 1 ? 20 : presetIdx == 2 ? 20 : 20
-kcMult = presetIdx == 0 ? m_kcMult : presetIdx == 1 ? 1.5 : presetIdx == 2 ? 1.5 : 1.5
+kcLen = presetIdx == 0 ? m_kcLen : presetIdx == 1 ? 16 : presetIdx == 2 ? 20 : 20
+kcMult = presetIdx == 0 ? m_kcMult : presetIdx == 1 ? 2.0 : presetIdx == 2 ? 1.5 : 1.5
 useTrueRange = presetIdx == 0 ? m_useTrueRange : presetIdx == 1 ? true : presetIdx == 2 ? true : true
 rsiLen = presetIdx == 0 ? m_rsiLen : presetIdx == 1 ? 14 : presetIdx == 2 ? 14 : 14
 maType = presetIdx == 0 ? m_maType : presetIdx == 1 ? "SMA" : presetIdx == 2 ? "SMA" : "SMA"
@@ -117,17 +117,17 @@ emaFLen = presetIdx == 0 ? m_emaFLen : presetIdx == 1 ? 20 : presetIdx == 2 ? 20
 emaMLen = presetIdx == 0 ? m_emaMLen : presetIdx == 1 ? 55 : presetIdx == 2 ? 55 : 55
 emaSLen = presetIdx == 0 ? m_emaSLen : presetIdx == 1 ? 200 : presetIdx == 2 ? 200 : 200
 adxLen = presetIdx == 0 ? m_adxLen : presetIdx == 1 ? 14 : presetIdx == 2 ? 14 : 14
-adxMin = presetIdx == 0 ? m_adxMin : presetIdx == 1 ? 20.0 : presetIdx == 2 ? 20.0 : 20.0
-pbBars = presetIdx == 0 ? m_pbBars : presetIdx == 1 ? 5 : presetIdx == 2 ? 5 : 5
+adxMin = presetIdx == 0 ? m_adxMin : presetIdx == 1 ? 30.0 : presetIdx == 2 ? 20.0 : 20.0
+pbBars = presetIdx == 0 ? m_pbBars : presetIdx == 1 ? 3 : presetIdx == 2 ? 5 : 5
 atrLen = presetIdx == 0 ? m_atrLen : presetIdx == 1 ? 14 : presetIdx == 2 ? 14 : 14
-atrMult = presetIdx == 0 ? m_atrMult : presetIdx == 1 ? 0.25 : presetIdx == 2 ? 0.25 : 0.25
+atrMult = presetIdx == 0 ? m_atrMult : presetIdx == 1 ? 0.1 : presetIdx == 2 ? 0.25 : 0.25
 useRsiF = presetIdx == 0 ? m_useRsiF : presetIdx == 1 ? true : presetIdx == 2 ? true : true
-minSqz = presetIdx == 0 ? m_minSqz : presetIdx == 1 ? 6 : presetIdx == 2 ? 6 : 6
+minSqz = presetIdx == 0 ? m_minSqz : presetIdx == 1 ? 12 : presetIdx == 2 ? 6 : 6
 graceBars = presetIdx == 0 ? m_graceBars : presetIdx == 1 ? 2 : presetIdx == 2 ? 2 : 2
 needMom = presetIdx == 0 ? m_needMom : presetIdx == 1 ? true : presetIdx == 2 ? true : true
 needE200 = presetIdx == 0 ? m_needE200 : presetIdx == 1 ? true : presetIdx == 2 ? true : true
 stopModeB = presetIdx == 0 ? m_stopModeB : presetIdx == 1 ? "Punto medio del rango" : presetIdx == 2 ? "Punto medio del rango" : "Punto medio del rango"
-invBars = presetIdx == 0 ? m_invBars : presetIdx == 1 ? 3 : presetIdx == 2 ? 3 : 3
+invBars = presetIdx == 0 ? m_invBars : presetIdx == 1 ? 0 : presetIdx == 2 ? 3 : 3
 cHot = presetIdx == 0 ? m_cHot : presetIdx == 1 ? 65.0 : presetIdx == 2 ? 65.0 : 65.0
 cCold = presetIdx == 0 ? m_cCold : presetIdx == 1 ? 35.0 : presetIdx == 2 ? 35.0 : 35.0
 cLook = presetIdx == 0 ? m_cLook : presetIdx == 1 ? 10 : presetIdx == 2 ? 10 : 10

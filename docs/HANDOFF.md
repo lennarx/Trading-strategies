@@ -1,4 +1,4 @@
-# HANDOFF: SQZ+RSI Lab (actualizado 2026-10-21)
+# HANDOFF: SQZ+RSI Lab (actualizado 2026-10-21, Fases 4 y 5 hechas: ver sección 8)
 
 > Leé esto entero antes de tocar nada. Reemplaza a `HANDOFF_sqz_rsi.md` del 2026-10-20 (que quedó en el proyecto de claude.ai). Lo nuevo respecto de ese está marcado con **[NUEVO]**.
 
@@ -62,7 +62,7 @@ Todos en `ref/` (copias del proyecto de claude.ai, carpeta `claude/`), **solo le
 
 **[NUEVO] Aviso de versión (corrección a lo dicho antes en el chat):** el script que el usuario tiene cargado hoy en TradingView se llama "SQZ+RSI BT" y su pestaña "Entradas" muestra solo A, B y C (sin D), con "C: COMPRAS (piso)" **tildada y sin la leyenda "apagada por defecto"** que sí tiene `ref/sqz_rsi_strategy_v2.pine`. Eso indica que es la **strategy v1 (A+B+C)**, no la v2. **No está verificado abriendo el editor Pine.** En el chat se dijo antes "la strategy compiló" asumiendo que era la v2: **eso no estaba verificado y era incorrecto.** Estado real:
 - La v1 (cargada) corre en TradingView.
-- ❌ **v2 y v8 siguen sin compilar en TradingView** (solo hubo chequeo de sintaxis por script).
+- ✅ **[CORREGIDO 2026-10-21]** Los 4 Pine generados desde `ref/sqz_rsi_strategy_v2.pine` (h4, d1, w1 y unificado) **sí compilaron en TradingView** (ver `results/tv_log.md`); como son copias de la v2 con otros defaults y título, la v2 compila en sustancia, pero el archivo `ref/…v2.pine` en sí no se pegó. ❌ El indicador v8 sigue sin probarse.
 
 ## 5. Evidencia hasta ahora (para no repetir trabajo)
 
@@ -115,21 +115,40 @@ Todos en `ref/` (copias del proyecto de claude.ai, carpeta `claude/`), **solo le
 - **Estructura de parámetros y Pine (decisión del usuario)**: `params/{h4,d1,w1}.json` = fuente de verdad, un set por temporalidad, **nunca por moneda**; hoy son los defaults de la v2 ("SIN OPTIMIZAR"). `python -m sqzlab.genpine` genera `pine/{h4,d1,w1}/sqz_rsi_strategy_<tf>.pine` y `pine/sqz_rsi_strategy_unified.pine`. **Unificado rediseñado**: preset automático con `timeframe.in_seconds()` (<1d H4, 1d a <1w D1, >=1w W1, opción Manual, cartel con el preset); los parámetros optimizables siguen al preset; **`riskPct` y `maxLev` son siempre inputs del usuario**; las casillas de "Que probar" tienen su interruptor "Que probar: usar mis casillas (en vez del preset)" (apagado por defecto) y, tildado, valen las del usuario sin importar el preset, para poder aislar señales y lados.
 - **`ref/` limpiado (excepción a "solo lectura", pedida por el usuario)**: se borraron las 66 líneas de interfaz de claude.ai de `sqz_rsi_senales_v8.pine` (queda con 449 líneas desde `//@version=5`; verificado con `diff` que el cuerpo es idéntico al original), y se renombraron los 3 archivos con guiones bajos (`sqz_rsi_senales_v8.pine`, `sqz_rsi_strategy_v2.pine`, `python_port_y_tests.md`) con todas las referencias actualizadas. `divsig.py` no está en `ref/` y no hace falta.
 - **Velocidad**: `simulate` ~0,2 s por corrida en BTC 4h 2017+ (20.000 velas; indicadores 0,06 s), ~0,04 s en 1D, casi nada en 1W; PC con 16 núcleos. No se aceleró: ver `docs/PROTOCOLO.md` ("Velocidad").
-- **Pine: NINGUNO compiló en TradingView** (los 4 generados, la v2 ni la v8). Solo hay chequeos de texto y tests en Python.
+- **[CORREGIDO 2026-10-21]** Los 4 Pine generados SÍ compilaron en TradingView (fila 1 a 8 de `results/tv_log.md`). La v8 (indicador) no se probó.
 
 ### Sin explicar / no verificado
 - BTC 1D: 2 trades de más y equity −9,3% antes de oct-2025 (probablemente 2011-2014); BTC 1W: PnL +16%. Mintick descartado como explicación. Necesito la lista de trades más viejos de TV para localizarlo (sección 9.4, tarea 1). Como la optimización usa datos desde 2017, esto no bloquea.
 - ETH: 1D (73 trades del port vs 83 de TV) y 4h (150 vs 151) no coinciden. **"El feed de ETH de TV no es Bitstamp" es hipótesis, no hecho**: el gráfico del usuario dice "Bitstamp" y arranca en 2015, mientras la API de Bitstamp arranca en 2017-08.
 - La v1 realmente cargada en TV no está en `ref/`: `simulate` con D apagada y cLong encendida replica sus números, pero no está verificado que sea idéntica.
 
+### Fase 4 y 5 hechas (sesión del 2026-10-21): optimizador + validación en TradingView
+- **Código nuevo** (tests: 38 verdes): `src/sqzlab/{universe,metrics,baseline,optimize}.py`; `simulate(df, ind=...)` acepta indicadores precalculados (test de regresión idéntico). Comando: `python -m sqzlab.optimize --tf d1|h4|w1` (ver CLAUDE.md). Informes: `results/opt_{d1,h4,w1}.md`, CSV por etapa y `opt_<tf>_state.json`. Decisiones fijadas antes de correr: `docs/PROTOCOLO.md` ("Decisiones fijadas ANTES de la primera corrida del optimizador").
+- **Cambio de método (declarado):** tras ver SOLO la etapa 0 de D1 (la media la manejaba un trade de +43R, mediana −0,17R) la métrica de selección pasó a **expectativa recortada** (sin el 2% de mejores trades). Aplica a todas las temporalidades.
+- **Universo:** train BTC, ETH, XRP, LTC, ADA, DOGE; holdout SOL, LINK, BNB, BCH, XLM. Entradas desde 2017-01-01; D1/H4 train 2017-2023, test 2024-hoy. Pruebas: **D1 584, H4 356 (337 + 19 de la etapa 4 re-corrida), W1 1**.
+- **H4: CANDIDATO, params escritos.** Set: solo A largo (`aShort=false`), B ambos lados, C y D apagadas, `adxMin=30, pbBars=3, atrMult=0.1, minSqz=12, invBars=0, bbLen=26, kcLen=16, kcMult=2.0` (el resto v2). Fuera de muestra agregado (test 2024-hoy en monedas train + holdout): n=556, **+0,39R por trade, PF 1,98**, sin el mejor +0,33R, recortada +0,10R, baseline aleatorio p95 0,19R. La v2 sin optimizar en los mismos grupos da n=3177, +0,07R, PF 1,23. Todos los años 2017-2026 positivos (2025-26 ≈ +0,2R).
+  - **Puntos débiles de H4 (no ocultar):** B cortas OOS ≈ 0 (+0,02R); XLM −0,28R; walk-forward 2023 ≈ 0 (−0,003R); la recortada +0,10R es chica (el retorno depende de colas largas: ~38% de ganadoras); DD agregado 24R. En TV (2024-hoy, riesgo 1%): ETH +5,1%, BTC +3,2%, SOL +21,4% en 2,8 años: **modesto**, no "grandes ganancias".
+- **D1: SIN CANDIDATO, `params/d1.json` queda en v2.** El set "optimizado" da OOS n=278, +0,34R, PF 1,87, pero recortada −0,03R (no cumple) y **rinde igual que la v2 sin tocar** (n=468, +0,33R, PF 2,11, recortada +0,03R; la v2 sí cumple los criterios, aunque no fue elegida con el OOS). Conclusión: en D1 la optimización no agregó nada; los defaults v2 son lo robusto. El OOS de D1 se miró 2 veces (la segunda solo para agregar la tabla "Vara" de la v2; mismo resultado del candidato).
+- **W1: SIN MUESTRA, `params/w1.json` queda en v2** (n=43 en train < 100; holdout n=29, −0,04R). No hay evidencia ni a favor ni en contra: casi todo W1 viene de pocas operaciones (D largo en DOGE/ADA). Hereda D1 (= v2).
+- **Validación en TradingView (Claude in Chrome, 8 corridas, `results/tv_log.md`):** los 4 Pine compilan. H4 coincide con el port: ETH 25/25 trades y +512,16 vs +512,25; BTC +317,29 vs +317,39; SOL +2.143,50 vs +2.143,79 (PF idénticos). El unificado con preset automático da lo mismo que el script de cada temporalidad (SOL 4h, 1D, 1W). El DD de TV difiere un poco del del port (ya se sabía: aproximación de curva cerrada). **El cartel "Preset: …" del unificado no se miró** (solo se verificó por los números).
+- **Estado del gráfico del usuario:** para compilar hubo que sacar "SQZ+RSI BT" (la v1) del gráfico (límite de 2 indicadores). Esa v1 NO estaba en "My scripts"; la restauré con Deshacer del gráfico (ETHUSD 4h, su leyenda coincide con la original; no verificado contra el código). Los scripts de prueba no se guardaron en la cuenta.
+
+### Sin explicar / no verificado (suma a lo anterior)
+- **Revisión independiente del optimizador (2026-10-21): 1 bug real, corregido.** La etapa 4 (meseta ±20%) filtraba con `isinstance(v, (int, float))` y los enteros llegaban como `np.int64`, así que solo movió los floats (en H4: 3 de 9 parámetros). Corregido (`plateau_probes`, tests nuevos) y **re-corrida la etapa 4 de H4** (+19 pruebas, ahora **356**): los 9 parámetros pasan (todos los vecinos ±20% siguen >0 y ≥50% de la expectativa recortada central), el set no cambió y el OOS sigue siendo el mismo. **D1 NO se re-corrió**: su etapa 4 solo probó los floats; no cambia la conclusión (sin candidato), pero ese renglón del informe de D1 está incompleto. Lo demás revisado quedó bien: fuga train→test, métricas en R, baseline, conteo de pruebas, params/Pine de H4.
+- Lo elegido en H4 queda en el borde de la grilla (adxMin 30, minSqz 12, bbLen 26 máx.; kcLen 16, pbBars 3, atrMult 0.1, invBars 0 mín.): el lado de afuera nunca se midió en la búsqueda (el chequeo ±20% de la etapa 4 sí lo cubre para los numéricos, salvo invBars=0 que es "apagado"). Una grilla más ancha sería una búsqueda nueva con OOS nuevo.
+- D1: el OOS de 2024-26 en monedas train da ~0R con el set optimizado (+0,02R) pero +0,38R con la v2: sugiere que recortar piernas (B corta, A corta, C, D largas) sobreajustó. No se probó más para no contaminar el OOS.
+- El Pine de TV no se comparó contra los trades del port uno por uno en H4 (solo totales: trades, ganadoras, PnL, PF).
+
 ### Próximos pasos (en orden)
-1. **Fase 4: optimizar** por temporalidad con `docs/PROTOCOLO.md`, usando las decisiones ya fijadas (ventana desde 2017-01-01, un set por temporalidad, cLong como parámetro a evaluar). Falta construir el optimizador (grilla agregada entre monedas con `multiprocessing`, baseline aleatorio, mesetas, conteo de pruebas, holdout por monedas, semillas fijas) y definir el grupo de entrenamiento y el de holdout **antes de mirar resultados**. Escribir el set ganador en `params/*.json`, regenerar los Pine y llenar `candidates/<tf>.md`.
-2. **Validar en TradingView** (sección 9; no hay Pine compilado todavía) y llevar `results/tv_log.md`.
-3. Correr SOL en TradingView (no se hizo) y completar `docs/TV_BASELINES.md`.
-4. Expectativa honesta: D no mostró ventaja en datos previos; si la optimización sale pobre, no implica que la strategy esté rota. Reportarlo tal cual.
+1. Si el usuario lo pide: commit (nada está commiteado todavía: todo es cambio sin commitear sobre f771cbb).
+2. **Forward test / datos nuevos**: el OOS de D1 y H4 ya se gastó; cualquier retoque nuevo necesita datos que no se hayan mirado (meses nuevos) o más monedas. No re-optimizar sobre el mismo OOS.
+3. Variantes estructurales de stop/salida (EMA de salida distinta, trailing, objetivos en R): una por una, definidas ANTES, con nuevo corte train/validación; documentarlas aparte (PROTOCOLO sec. 2).
+4. Completar `docs/TV_BASELINES.md` con SOL (hoy están en `results/tv_log.md` filas 3 a 8) y la tarea 9.4.1 (BTC 1D trades viejos).
+5. Expectativa honesta: H4 tiene una ventaja modesta y consistente; D1 con los defaults v2 también; W1 no se puede juzgar. No es asesoría financiera.
 
 ## 9. Plan para el próximo agente: validar y calibrar en TradingView con Claude in Chrome
 
+> **[2026-10-21] Hecho parcialmente** (tareas 5 y 6 de 9.4 y parte de 7, con SOL; ver `results/tv_log.md`); el resto sigue pendiente. Cómo operó el navegador: pegar el Pine con el portapapeles (PowerShell `Get-Content -Raw ... | Set-Clipboard`, clic en el editor, Ctrl+A, Ctrl+V, 'Add to chart'); `fetch` a localhost desde la página falla; para cambiar de temporalidad usar el menú del botón de la barra superior. Antes de compilar hay que sacar la strategy cargada (límite de 2 indicadores).
 > Decisión del usuario (2026-10-20): **esta sesión NO tocó TradingView.** Pidió dejar documentado todo para que otro agente lo ejecute. Nada de esta sección fue probado: lo marcado "no verificado" hay que comprobarlo.
 
 ### 9.1 Dónde y qué

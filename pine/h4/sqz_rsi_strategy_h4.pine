@@ -10,26 +10,26 @@ strategy("SQZ+RSI A+B+C+D Backtest H4", shorttitle="SQZ+RSI BT H4", overlay=true
 // ===== Que probar =====
 useA   = input.bool(true, "Senal A (pullback)", group="Que probar")
 useB   = input.bool(true, "Senal B (ruptura de squeeze)", group="Que probar")
-useC   = input.bool(true, "Senal C (reversion)", group="Que probar")
+useC   = input.bool(false, "Senal C (reversion)", group="Que probar")
 aLong  = input.bool(true, "A: COMPRAS", group="Que probar")
-aShort = input.bool(true, "A: VENTAS", group="Que probar")
+aShort = input.bool(false, "A: VENTAS", group="Que probar")
 bLong  = input.bool(true, "B: COMPRAS", group="Que probar")
 bShort = input.bool(true, "B: VENTAS", group="Que probar")
 cLong  = input.bool(false, "C: COMPRAS (piso) - apagada por defecto", group="Que probar")
-cShort = input.bool(true, "C: VENTAS (techo)", group="Que probar")
-useD   = input.bool(true, "Senal D (divergencia del momentum)", group="Que probar")
-dLong  = input.bool(true, "D: COMPRAS (divergencia alcista)", group="Que probar")
-dShort = input.bool(true, "D: VENTAS (divergencia bajista)", group="Que probar")
+cShort = input.bool(false, "C: VENTAS (techo)", group="Que probar")
+useD   = input.bool(false, "Senal D (divergencia del momentum)", group="Que probar")
+dLong  = input.bool(false, "D: COMPRAS (divergencia alcista)", group="Que probar")
+dShort = input.bool(false, "D: VENTAS (divergencia bajista)", group="Que probar")
  
 // ===== Riesgo del backtest =====
 riskPct = input.float(1.0, "Riesgo por trade (% del capital)", minval=0.1, step=0.1, group="Backtest", tooltip="El tamano de cada posicion se calcula para que, si toca el stop, se pierda este porcentaje del capital (1R). Asi las ganancias y perdidas se leen en R. La comision se edita en la pestana Propiedades (por defecto 0.05% por lado).")
 maxLev  = input.float(1.0, "Apalancamiento maximo (x capital)", minval=0.1, step=0.5, group="Backtest")
  
 // ===== Inputs: Squeeze =====
-bbLen        = input.int(20, "BB Length", minval=1, group="Squeeze")
+bbLen        = input.int(26, "BB Length", minval=1, group="Squeeze")
 bbMult       = input.float(2.0, "BB Mult", step=0.5, group="Squeeze")
-kcLen        = input.int(20, "KC Length", minval=1, group="Squeeze")
-kcMult       = input.float(1.5, "KC Mult", step=0.5, group="Squeeze")
+kcLen        = input.int(16, "KC Length", minval=1, group="Squeeze")
+kcMult       = input.float(2.0, "KC Mult", step=0.5, group="Squeeze")
 useTrueRange = input.bool(true, "Usar True Range en KC", group="Squeeze")
  
 // ===== Inputs: RSI =====
@@ -43,19 +43,19 @@ emaFLen    = input.int(20, "EMA rapida", minval=1, group="Senal A y base")
 emaMLen    = input.int(55, "EMA media", minval=1, group="Senal A y base")
 emaSLen    = input.int(200, "EMA lenta", minval=1, group="Senal A y base")
 adxLen     = input.int(14, "ADX Length", minval=1, group="Senal A y base")
-adxMin     = input.float(20.0, "ADX minimo", minval=1, group="Senal A y base")
-pbBars     = input.int(5, "Velas para buscar el pullback", minval=1, group="Senal A y base")
+adxMin     = input.float(30.0, "ADX minimo", minval=1, group="Senal A y base")
+pbBars     = input.int(3, "Velas para buscar el pullback", minval=1, group="Senal A y base")
 atrLen     = input.int(14, "ATR Length", minval=1, group="Senal A y base")
-atrMult    = input.float(0.25, "Margen del stop de A (x ATR)", minval=0, step=0.05, group="Senal A y base")
+atrMult    = input.float(0.1, "Margen del stop de A (x ATR)", minval=0, step=0.05, group="Senal A y base")
 useRsiF    = input.bool(true, "A: exigir RSI por encima/debajo de su media", group="Senal A y base")
  
 // ===== Inputs: Senal B =====
-minSqz    = input.int(6, "Velas minimas de squeeze activo", minval=2, group="Senal B (squeeze)")
+minSqz    = input.int(12, "Velas minimas de squeeze activo", minval=2, group="Senal B (squeeze)")
 graceBars = input.int(2, "Velas de gracia tras liberarse el squeeze", minval=0, group="Senal B (squeeze)")
 needMom   = input.bool(true, "Exigir momentum a favor y creciente", group="Senal B (squeeze)")
 needE200  = input.bool(true, "Exigir precio del lado correcto de la EMA lenta", group="Senal B (squeeze)")
 stopModeB = input.string("Punto medio del rango", "Stop de B", options=["Punto medio del rango", "Lado opuesto del rango"], group="Senal B (squeeze)")
-invBars   = input.int(3, "Velas de invalidacion (0 = apagado)", minval=0, group="Senal B (squeeze)")
+invBars   = input.int(0, "Velas de invalidacion (0 = apagado)", minval=0, group="Senal B (squeeze)")
  
 // ===== Inputs: Senal C =====
 cHot       = input.float(65.0, "RSI debe haber llegado a (techo, venta)", minval=50, maxval=100, group="Senal C (reversion)")
