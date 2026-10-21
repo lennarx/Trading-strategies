@@ -1,0 +1,371 @@
+//@version=5
+// GENERADO por src/sqzlab/genpine.py desde params/w1.json. NO editar a mano.
+// Set de parametros de la temporalidad W1 (el mismo para todas las monedas). NO COMPILADO en TradingView.
+// Version strategy() del indicador SQZ+RSI+SIG v8: SOLO para backtest en el Strategy Tester.
+// Misma logica de senales A / B / C / D (D = divergencia del momentum del SQZ), pero con ordenes de verdad:
+// entrada al cierre de la vela de la senal, stop intravela (strategy.exit) y salida al cierre bajo/sobre
+// la EMA rapida (o invalidacion de B). Cada senal y cada lado se pueden prender/apagar por separado.
+strategy("SQZ+RSI A+B+C+D Backtest W1", shorttitle="SQZ+RSI BT W1", overlay=true, initial_capital=10000, default_qty_type=strategy.fixed, default_qty_value=1, pyramiding=0, process_orders_on_close=true, calc_on_every_tick=false, commission_type=strategy.commission.percent, commission_value=0.05)
+ 
+// ===== Que probar =====
+useA   = input.bool(true, "Senal A (pullback)", group="Que probar")
+useB   = input.bool(true, "Senal B (ruptura de squeeze)", group="Que probar")
+useC   = input.bool(true, "Senal C (reversion)", group="Que probar")
+aLong  = input.bool(true, "A: COMPRAS", group="Que probar")
+aShort = input.bool(true, "A: VENTAS", group="Que probar")
+bLong  = input.bool(true, "B: COMPRAS", group="Que probar")
+bShort = input.bool(true, "B: VENTAS", group="Que probar")
+cLong  = input.bool(false, "C: COMPRAS (piso) - apagada por defecto", group="Que probar")
+cShort = input.bool(true, "C: VENTAS (techo)", group="Que probar")
+useD   = input.bool(true, "Senal D (divergencia del momentum)", group="Que probar")
+dLong  = input.bool(true, "D: COMPRAS (divergencia alcista)", group="Que probar")
+dShort = input.bool(true, "D: VENTAS (divergencia bajista)", group="Que probar")
+ 
+// ===== Riesgo del backtest =====
+riskPct = input.float(1.0, "Riesgo por trade (% del capital)", minval=0.1, step=0.1, group="Backtest", tooltip="El tamano de cada posicion se calcula para que, si toca el stop, se pierda este porcentaje del capital (1R). Asi las ganancias y perdidas se leen en R. La comision se edita en la pestana Propiedades (por defecto 0.05% por lado).")
+maxLev  = input.float(1.0, "Apalancamiento maximo (x capital)", minval=0.1, step=0.5, group="Backtest")
+ 
+// ===== Inputs: Squeeze =====
+bbLen        = input.int(20, "BB Length", minval=1, group="Squeeze")
+bbMult       = input.float(2.0, "BB Mult", step=0.5, group="Squeeze")
+kcLen        = input.int(20, "KC Length", minval=1, group="Squeeze")
+kcMult       = input.float(1.5, "KC Mult", step=0.5, group="Squeeze")
+useTrueRange = input.bool(true, "Usar True Range en KC", group="Squeeze")
+ 
+// ===== Inputs: RSI =====
+rsiLen = input.int(14, "RSI Length", minval=1, group="RSI")
+rsiSrc = input.source(close, "RSI Source", group="RSI")
+maType = input.string("SMA", "Tipo de media del RSI", options=["SMA", "EMA", "WMA", "RMA"], group="RSI")
+maLen  = input.int(14, "Largo de la media del RSI", minval=1, group="RSI")
+ 
+// ===== Inputs: Base y senal A =====
+emaFLen    = input.int(20, "EMA rapida", minval=1, group="Senal A y base")
+emaMLen    = input.int(55, "EMA media", minval=1, group="Senal A y base")
+emaSLen    = input.int(200, "EMA lenta", minval=1, group="Senal A y base")
+adxLen     = input.int(14, "ADX Length", minval=1, group="Senal A y base")
+adxMin     = input.float(20.0, "ADX minimo", minval=1, group="Senal A y base")
+pbBars     = input.int(5, "Velas para buscar el pullback", minval=1, group="Senal A y base")
+atrLen     = input.int(14, "ATR Length", minval=1, group="Senal A y base")
+atrMult    = input.float(0.25, "Margen del stop de A (x ATR)", minval=0, step=0.05, group="Senal A y base")
+useRsiF    = input.bool(true, "A: exigir RSI por encima/debajo de su media", group="Senal A y base")
+ 
+// ===== Inputs: Senal B =====
+minSqz    = input.int(6, "Velas minimas de squeeze activo", minval=2, group="Senal B (squeeze)")
+graceBars = input.int(2, "Velas de gracia tras liberarse el squeeze", minval=0, group="Senal B (squeeze)")
+needMom   = input.bool(true, "Exigir momentum a favor y creciente", group="Senal B (squeeze)")
+needE200  = input.bool(true, "Exigir precio del lado correcto de la EMA lenta", group="Senal B (squeeze)")
+stopModeB = input.string("Punto medio del rango", "Stop de B", options=["Punto medio del rango", "Lado opuesto del rango"], group="Senal B (squeeze)")
+invBars   = input.int(3, "Velas de invalidacion (0 = apagado)", minval=0, group="Senal B (squeeze)")
+ 
+// ===== Inputs: Senal C =====
+cHot       = input.float(65.0, "RSI debe haber llegado a (techo, venta)", minval=50, maxval=100, group="Senal C (reversion)")
+cCold      = input.float(35.0, "RSI debe haber bajado a (piso, compra)", minval=0, maxval=50, group="Senal C (reversion)")
+cLook      = input.int(10, "Velas hacia atras para buscar ese nivel del RSI", minval=2, group="Senal C (reversion)")
+cWin       = input.int(3, "Velas de espera tras el cruce del RSI para confirmar", minval=0, group="Senal C (reversion)")
+cNeedMom   = input.bool(true, "Exigir momentum cayendo (venta) / subiendo (compra)", group="Senal C (reversion)")
+cNeedEma   = input.bool(true, "Exigir cierre bajo (venta) / sobre (compra) la EMA rapida", group="Senal C (reversion)")
+cStopBars  = input.int(7, "Velas para ubicar el extremo del stop", minval=2, group="Senal C (reversion)")
+cAtrMult   = input.float(0.25, "Margen del stop de C (x ATR)", minval=0, step=0.05, group="Senal C (reversion)")
+cMaxRisk   = input.float(3.0, "Descartar si el stop queda a mas de X ATR (0 = apagado)", minval=0, step=0.5, group="Senal C (reversion)")
+ 
+// ===== Inputs: Senal D (divergencias del momentum) =====
+dvL       = input.int(5, "Velas a la izquierda del pivote", minval=1, group="Senal D (divergencia)")
+dvR       = input.int(5, "Velas a la derecha del pivote (= retraso de la senal)", minval=1, group="Senal D (divergencia)")
+dvMin     = input.int(5, "Distancia minima entre pivotes (velas)", minval=1, group="Senal D (divergencia)")
+dvMax     = input.int(60, "Distancia maxima entre pivotes (velas)", minval=5, group="Senal D (divergencia)")
+dvZero    = input.bool(true, "Exigir pivotes del lado correcto del cero (alcista: bajo 0, bajista: sobre 0)", group="Senal D (divergencia)")
+dNeedEma  = input.bool(true, "Exigir cierre sobre (compra) / bajo (venta) la EMA rapida al confirmarse", group="Senal D (divergencia)")
+dAtrMult  = input.float(0.25, "Margen del stop de D (x ATR) tras el pivote", minval=0, step=0.05, group="Senal D (divergencia)")
+dMaxRisk  = input.float(0.0, "Descartar si el stop queda a mas de X ATR (0 = apagado)", minval=0, step=0.5, group="Senal D (divergencia)")
+ 
+// ===== Inputs: Volumen (opcional) =====
+useVol  = input.bool(false, "Exigir volumen alto en la vela de la senal (A y B)", group="Volumen (opcional)")
+volLen  = input.int(20, "Media de volumen (velas)", minval=1, group="Volumen (opcional)")
+volMult = input.float(1.5, "Multiplo minimo sobre la media", minval=0.1, step=0.1, group="Volumen (opcional)")
+ 
+// ===== Squeeze y momentum =====
+src     = close
+basis   = ta.sma(src, bbLen)
+dev     = bbMult * ta.stdev(src, bbLen)
+upperBB = basis + dev
+lowerBB = basis - dev
+kcMa    = ta.sma(src, kcLen)
+rng     = useTrueRange ? ta.tr : (high - low)
+rngMa   = ta.sma(rng, kcLen)
+upperKC = kcMa + rngMa * kcMult
+lowerKC = kcMa - rngMa * kcMult
+sqzOn   = lowerBB > lowerKC and upperBB < upperKC
+ 
+avgHL = math.avg(ta.highest(high, kcLen), ta.lowest(low, kcLen))
+mom   = ta.linreg(src - math.avg(avgHL, ta.sma(close, kcLen)), kcLen, 0)
+ 
+// ===== RSI y su media =====
+rsiVal = ta.rsi(rsiSrc, rsiLen)
+rsiMa  = maType == "EMA" ? ta.ema(rsiVal, maLen) : maType == "WMA" ? ta.wma(rsiVal, maLen) : maType == "RMA" ? ta.rma(rsiVal, maLen) : ta.sma(rsiVal, maLen)
+ 
+// ===== Base comun =====
+ema1 = ta.ema(close, emaFLen)
+ema2 = ta.ema(close, emaMLen)
+ema3 = ta.ema(close, emaSLen)
+[diP, diM, adxVal] = ta.dmi(adxLen, adxLen)
+atrVal = ta.atr(atrLen)
+ 
+hasVol = ta.cum(nz(volume)) > 0
+volAvg = ta.sma(volume, volLen)
+volOk  = not useVol or not hasVol or volume > volAvg * volMult
+ 
+// ===== Posicion real del strategy (ya refleja los stops tocados dentro de la vela) =====
+posNow = strategy.position_size > 0 ? 1 : strategy.position_size < 0 ? -1 : 0
+ 
+var int posType   = 0
+var float stopLvl = na
+var int entryBar  = na
+var float entHi   = na
+var float entLo   = na
+ 
+// ===== Senal A: pullback a las EMAs en tendencia =====
+upTrend   = ema1 > ema2 and ema2 > ema3
+downTrend = ema1 < ema2 and ema2 < ema3
+adxOk     = adxVal >= adxMin and adxVal > nz(adxVal[1])
+ 
+touchUp = low <= ema1 ? 1.0 : 0.0
+breakUp = close < ema2 ? 1.0 : 0.0
+touchDn = high >= ema1 ? 1.0 : 0.0
+breakDn = close > ema2 ? 1.0 : 0.0
+setupLong  = ta.highest(touchUp, pbBars) == 1 and ta.highest(breakUp, pbBars) == 0
+setupShort = ta.highest(touchDn, pbBars) == 1 and ta.highest(breakDn, pbBars) == 0
+pbLow  = ta.lowest(low, pbBars)
+pbHigh = ta.highest(high, pbBars)
+ 
+trigLong  = close > ema1 and close > high[1]
+trigShort = close < ema1 and close < low[1]
+rsiLongOk  = not useRsiF or rsiVal > rsiMa
+rsiShortOk = not useRsiF or rsiVal < rsiMa
+ 
+longRawA  = useA and aLong and upTrend and adxOk and setupLong and trigLong and rsiLongOk and volOk
+shortRawA = useA and aShort and downTrend and adxOk and setupShort and trigShort and rsiShortOk and volOk
+ 
+var int lastLong  = na
+var int lastShort = na
+longSigA  = false
+shortSigA = false
+if longRawA and (na(lastLong) or bar_index - lastLong > pbBars)
+    longSigA := true
+    lastLong := bar_index
+if shortRawA and (na(lastShort) or bar_index - lastShort > pbBars)
+    shortSigA := true
+    lastShort := bar_index
+ 
+// ===== Senal B: ruptura de squeeze =====
+var int runLen   = 0
+var int sinceOn  = 999
+var float sqHi   = na
+var float sqLo   = na
+ 
+rHiPrev   = sqHi
+rLoPrev   = sqLo
+armedPrev = runLen >= minSqz and sinceOn <= graceBars
+ 
+momUp   = mom > 0 and mom > nz(mom[1])
+momDown = mom < 0 and mom < nz(mom[1])
+ 
+longSigB  = useB and bLong and armedPrev and close > rHiPrev and (not needE200 or close > ema3) and (not needMom or momUp) and volOk
+shortSigB = useB and bShort and armedPrev and close < rLoPrev and (not needE200 or close < ema3) and (not needMom or momDown) and volOk
+ 
+if sqzOn
+    if sinceOn > 0
+        runLen := 1
+        sqHi := high
+        sqLo := low
+    else
+        runLen := runLen + 1
+        sqHi := math.max(nz(sqHi, high), high)
+        sqLo := math.min(nz(sqLo, low), low)
+    sinceOn := 0
+else
+    sinceOn := math.min(sinceOn + 1, 999)
+ 
+if longSigB or shortSigB
+    runLen := 0
+    sinceOn := 999
+ 
+// ===== Senal C: reversion en techo / piso =====
+rsiHotRecent  = ta.highest(rsiVal, cLook) >= cHot
+rsiColdRecent = ta.lowest(rsiVal, cLook) <= cCold
+rsiXDown      = ta.crossunder(rsiVal, rsiMa)
+rsiXUp        = ta.crossover(rsiVal, rsiMa)
+ 
+var int cArmS = na
+var int cArmL = na
+if rsiXDown and rsiHotRecent
+    cArmS := bar_index
+if rsiXUp and rsiColdRecent
+    cArmL := bar_index
+ 
+stopCS  = ta.highest(high, cStopBars) + cAtrMult * atrVal
+stopCL  = ta.lowest(low, cStopBars) - cAtrMult * atrVal
+riskOkS = cMaxRisk == 0 or stopCS - close <= cMaxRisk * atrVal
+riskOkL = cMaxRisk == 0 or close - stopCL <= cMaxRisk * atrVal
+ 
+shortSigC = useC and cShort and bar_index - nz(cArmS, -999) <= cWin and rsiVal < rsiMa and (not cNeedMom or mom < nz(mom[1])) and (not cNeedEma or close < ema1) and riskOkS and posNow != -1
+longSigC  = useC and cLong and bar_index - nz(cArmL, -999) <= cWin and rsiVal > rsiMa and (not cNeedMom or mom > nz(mom[1])) and (not cNeedEma or close > ema1) and riskOkL and posNow != 1
+ 
+if shortSigC
+    cArmS := na
+if longSigC
+    cArmL := na
+ 
+// ===== Senal D: divergencia del momentum del SQZ (misma deteccion que el indicador, sin dibujo) =====
+pivL = ta.pivotlow(mom, dvL, dvR)
+pivH = ta.pivothigh(mom, dvL, dvR)
+ 
+var int   pLBar = na
+var float pLPx  = na
+var float pLMom = na
+var int   pHBar = na
+var float pHPx  = na
+var float pHMom = na
+ 
+bullDiv = false
+bearDiv = false
+ 
+if not na(pivL)
+    nBar    = bar_index - dvR
+    nPx     = low[dvR]
+    okRange = not na(pLBar) and nBar - pLBar >= dvMin and nBar - pLBar <= dvMax
+    okSide  = not dvZero or (pivL < 0 and nz(pLMom) < 0)
+    if okRange and okSide
+        if nPx < pLPx and pivL > pLMom
+            bullDiv := true
+    pLBar := nBar
+    pLPx  := nPx
+    pLMom := pivL
+ 
+if not na(pivH)
+    nBarH    = bar_index - dvR
+    nPxH     = high[dvR]
+    okRangeH = not na(pHBar) and nBarH - pHBar >= dvMin and nBarH - pHBar <= dvMax
+    okSideH  = not dvZero or (pivH > 0 and nz(pHMom) > 0)
+    if okRangeH and okSideH
+        if nPxH > pHPx and pivH < pHMom
+            bearDiv := true
+    pHBar := nBarH
+    pHPx  := nPxH
+    pHMom := pivH
+ 
+stopDL   = pLPx - dAtrMult * atrVal
+stopDS   = pHPx + dAtrMult * atrVal
+riskOkDL = dMaxRisk == 0 or close - stopDL <= dMaxRisk * atrVal
+riskOkDS = dMaxRisk == 0 or stopDS - close <= dMaxRisk * atrVal
+longSigD  = useD and dLong and bullDiv and close > stopDL and (not dNeedEma or close > ema1) and riskOkDL and posNow != 1
+shortSigD = useD and dShort and bearDiv and close < stopDS and (not dNeedEma or close < ema1) and riskOkDS and posNow != -1
+ 
+// ===== Tamano de la posicion: arriesga riskPct del capital hasta el stop =====
+calcQty(float stopPx) =>
+    riskPU = math.abs(close - stopPx)
+    qRisk = riskPU > 0 ? (strategy.equity * riskPct / 100) / riskPU : 0.0
+    math.min(qRisk, strategy.equity * maxLev / close)
+ 
+// ===== Salidas por condicion (el stop lo maneja strategy.exit, dentro de la vela) =====
+exitLongCond  = posNow == 1 and (close < ema1 or (posType == 2 and bar_index - nz(entryBar, -999) <= invBars and close < entHi))
+exitShortCond = posNow == -1 and (close > ema1 or (posType == 2 and bar_index - nz(entryBar, -999) <= invBars and close > entLo))
+ 
+if exitLongCond
+    strategy.close("L", comment="Salida EMA/inval.")
+if exitShortCond
+    strategy.close("S", comment="Salida EMA/inval.")
+ 
+// ===== Entradas (prioridad B, A, C; una senal del mismo lado de la posicion abierta se ignora) =====
+entL = false
+entS = false
+float q = na
+ 
+if longSigB
+    if posNow != 1
+        stopB = stopModeB == "Punto medio del rango" ? (rHiPrev + rLoPrev) / 2 : rLoPrev
+        q := calcQty(stopB)
+        if q > 0
+            entL := true
+            posType := 2
+            entryBar := bar_index
+            entHi := rHiPrev
+            entLo := rLoPrev
+            stopLvl := stopB
+            strategy.entry("L", strategy.long, qty=q, comment="B")
+            strategy.exit("xL", from_entry="L", stop=stopB)
+else if shortSigB
+    if posNow != -1
+        stopB = stopModeB == "Punto medio del rango" ? (rHiPrev + rLoPrev) / 2 : rHiPrev
+        q := calcQty(stopB)
+        if q > 0
+            entS := true
+            posType := 2
+            entryBar := bar_index
+            entHi := rHiPrev
+            entLo := rLoPrev
+            stopLvl := stopB
+            strategy.entry("S", strategy.short, qty=q, comment="B")
+            strategy.exit("xS", from_entry="S", stop=stopB)
+else if longSigA
+    if posNow != 1
+        stopA = pbLow - atrMult * atrVal
+        q := calcQty(stopA)
+        if q > 0
+            entL := true
+            posType := 1
+            stopLvl := stopA
+            strategy.entry("L", strategy.long, qty=q, comment="A")
+            strategy.exit("xL", from_entry="L", stop=stopA)
+else if shortSigA
+    if posNow != -1
+        stopA = pbHigh + atrMult * atrVal
+        q := calcQty(stopA)
+        if q > 0
+            entS := true
+            posType := 1
+            stopLvl := stopA
+            strategy.entry("S", strategy.short, qty=q, comment="A")
+            strategy.exit("xS", from_entry="S", stop=stopA)
+else if longSigC
+    q := calcQty(stopCL)
+    if q > 0
+        entL := true
+        posType := 3
+        stopLvl := stopCL
+        strategy.entry("L", strategy.long, qty=q, comment="C")
+        strategy.exit("xL", from_entry="L", stop=stopCL)
+else if shortSigC
+    q := calcQty(stopCS)
+    if q > 0
+        entS := true
+        posType := 3
+        stopLvl := stopCS
+        strategy.entry("S", strategy.short, qty=q, comment="C")
+        strategy.exit("xS", from_entry="S", stop=stopCS)
+else if longSigD
+    q := calcQty(stopDL)
+    if q > 0
+        entL := true
+        posType := 4
+        stopLvl := stopDL
+        strategy.entry("L", strategy.long, qty=q, comment="D")
+        strategy.exit("xL", from_entry="L", stop=stopDL)
+else if shortSigD
+    q := calcQty(stopDS)
+    if q > 0
+        entS := true
+        posType := 4
+        stopLvl := stopDS
+        strategy.entry("S", strategy.short, qty=q, comment="D")
+        strategy.exit("xS", from_entry="S", stop=stopDS)
+ 
+// ===== Marcas en el grafico: A = triangulos, B = rombos, C = flechas azules, D = cuadrados amarillos =====
+plotshape(entL and posType == 4, "Compra D", style=shape.square, location=location.belowbar, color=color.yellow, size=size.small)
+plotshape(entS and posType == 4, "Venta D", style=shape.square, location=location.abovebar, color=color.yellow, size=size.small)
+plotshape(entL and posType == 1, "Compra A", style=shape.triangleup, location=location.belowbar, color=color.lime, size=size.small)
+plotshape(entS and posType == 1, "Venta A", style=shape.triangledown, location=location.abovebar, color=color.red, size=size.small)
+plotshape(entL and posType == 2, "Compra B", style=shape.diamond, location=location.belowbar, color=color.aqua, size=size.small)
+plotshape(entS and posType == 2, "Venta B", style=shape.diamond, location=location.abovebar, color=color.fuchsia, size=size.small)
+plotshape(entL and posType == 3, "Compra C", style=shape.arrowup, location=location.belowbar, color=color.new(#2962FF, 0), size=size.normal)
+plotshape(entS and posType == 3, "Venta C", style=shape.arrowdown, location=location.abovebar, color=color.new(#2962FF, 0), size=size.normal)
+plot(ema1, "EMA rapida (salida)", color=color.new(color.aqua, 60))
