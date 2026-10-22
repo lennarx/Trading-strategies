@@ -21,12 +21,17 @@ FRESH_MAX_MISSING_4H = 10                         # mas velas 4h faltantes que e
 # descartada); alfabetico alternado. tests/test_universe.py verifica que esto siga siendo igual a la regla.
 FRESH_Z1: dict[str, str] = {s: "binance" for s in ("AAVE", "ATOM", "DOT", "FIL", "NEAR", "UNI")}
 FRESH_Z2: dict[str, str] = {s: "binance" for s in ("ALGO", "AVAX", "ETC", "ICP", "TRX", "VET")}
-SOURCES = {**TRAIN, **HOLDOUT, **FRESH_Z1, **FRESH_Z2}
+# Fase 7: Z3 = 24 monedas Binance spot USDT nunca usadas, elegidas por la regla de docs/PROTOCOLO.md (Fase 7, seccion 5) con
+# `python -m sqzlab.z3` el 2026-10-21 (results/z3_universe.json/.md: 106 recorridas en orden alfabetico, 82 descartes por antiguedad).
+FRESH_Z3: dict[str, str] = {s: "binance" for s in (
+    "1INCH", "ACM", "AGLD", "ALICE", "ANKR", "AR", "ARPA", "ASR", "ATM", "AUDIO", "AVA", "AXS",
+    "BAND", "BAR", "BAT", "BEL", "BNT", "C98", "CAKE", "CELO", "CELR", "CFX", "CHR", "CHZ")}
+SOURCES = {**TRAIN, **HOLDOUT, **FRESH_Z1, **FRESH_Z2, **FRESH_Z3}
 
 ENTRY_FROM = pd.Timestamp("2017-01-01")          # solo cuentan trades con entrada desde aca
 TRAIN_END = pd.Timestamp("2023-12-31 23:59:59")  # D1/H4: train = 2017-01-01..2023-12-31, test = 2024-01-01..hoy
 TEST_FROM = pd.Timestamp("2024-01-01")
-DATA_END = {"1d": "2026-10-20", "1w": "2026-10-19", "4h": "2026-10-20 20:00"}   # ultima vela cerrada del dia fijado
+DATA_END = {"1d": "2026-10-20", "1w": "2026-10-12", "4h": "2026-10-20 20:00"}   # ultima vela cerrada del dia fijado (1w: ultima SEMANA COMPLETA; la del 10-19 traia el cierre parcial del 21-oct)
 WARMUP_FROM = "2016-01-01"                       # D1/H4; W1 usa todo el historial (EMA200 semanal = 200 semanas)
 
 # walk-forward informativo de H4: (train desde, train hasta, test desde, test hasta)
@@ -44,6 +49,14 @@ def load_coin(sym: str, tf: str) -> pd.DataFrame:
     """tf en codigo de data ('4h', '1d', '1w'). Warm-up completo, cortado en la ultima vela cerrada fijada."""
     start = None if tf == "1w" else WARMUP_FROM
     return load(SOURCES[sym], sym, tf, start=start, end=DATA_END[tf])
+
+
+def load_htf(sym: str, tf: str) -> pd.DataFrame:
+    """TF mayor para los filtros P4/P1 (Fase 7). La semanal NO se corta en DATA_END['1w']: la semana en curso hace falta como
+    indice (una D1 usa la semana W-1); su cierre parcial nunca se usa."""
+    if tf == "1w":
+        return load(SOURCES[sym], sym, "1w")
+    return load_coin(sym, tf)
 
 
 def screen_fresh(candidates: list[str] | None = None) -> tuple[list[str], dict[str, str]]:
@@ -77,10 +90,10 @@ def partition_fresh(survivors: list[str]) -> tuple[list[str], list[str]]:
 
 
 def fresh_group(group: str) -> dict[str, str]:
-    return {"z1": FRESH_Z1, "z2": FRESH_Z2}[group]
+    return {"z1": FRESH_Z1, "z2": FRESH_Z2, "z3": FRESH_Z3}[group]
 
 
 def load_universe(tf: str, group: str = "all") -> dict[str, pd.DataFrame]:
     """'all' = train + holdout de la Fase 4 (no incluye las monedas frescas); 'z1' / 'z2' = monedas nuevas de la Fase 6."""
-    coins = {"train": TRAIN, "holdout": HOLDOUT, "all": {**TRAIN, **HOLDOUT}, "z1": FRESH_Z1, "z2": FRESH_Z2}[group]
+    coins = {"train": TRAIN, "holdout": HOLDOUT, "all": {**TRAIN, **HOLDOUT}, "z1": FRESH_Z1, "z2": FRESH_Z2, "z3": FRESH_Z3}[group]
     return {s: load_coin(s, tf) for s in coins}

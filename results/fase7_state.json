@@ -1,0 +1,536 @@
+{
+ "w1": {
+  "train": {
+   "window": [
+    "2017-01-01 00:00:00",
+    "2023-12-31 23:59:59"
+   ],
+   "coins": [
+    "BTC",
+    "ETH",
+    "XRP",
+    "LTC",
+    "ADA",
+    "DOGE"
+   ],
+   "puntos": 16,
+   "referencias": 2,
+   "pasadas": 2,
+   "pruebas": 36,
+   "factibles": 0,
+   "max_n": 118,
+   "candidato": null,
+   "meseta": null
+  },
+  "looks": {
+   "pool": {
+    "coins": [
+     "SOL",
+     "LINK",
+     "BNB",
+     "BCH",
+     "XLM",
+     "AAVE",
+     "ATOM",
+     "DOT",
+     "FIL",
+     "NEAR",
+     "UNI",
+     "ALGO",
+     "AVAX",
+     "ETC",
+     "ICP",
+     "TRX",
+     "VET",
+     "1INCH",
+     "ACM",
+     "AGLD",
+     "ALICE",
+     "ANKR",
+     "AR",
+     "ARPA",
+     "ASR",
+     "ATM",
+     "AUDIO",
+     "AVA",
+     "AXS",
+     "BAND",
+     "BAR",
+     "BAT",
+     "BEL",
+     "BNT",
+     "C98",
+     "CAKE",
+     "CELO",
+     "CELR",
+     "CFX",
+     "CHR",
+     "CHZ"
+    ],
+    "window": [
+     "2021-09-06 00:00:00",
+     "2026-10-12 00:00:00"
+    ],
+    "veredictos": {
+     "R0": {
+      "veredicto": "SIN MUESTRA",
+      "criterios": {
+       "CAGR > 0": false,
+       "Calmar > BTC buy&hold": false,
+       "Calmar > equiponderado buy&hold": true,
+       "DD <= 50% del DD de BTC buy&hold": true,
+       "n >= 100": false,
+       "CAGR > 0 sin el mejor trade": false,
+       "mediana por moneda del PnL > 0": false,
+       "ninguna moneda > 40% de la ganancia": false
+      },
+      "n": 79,
+      "calmar": -0.004867030108445713,
+      "cagr": -0.000319981433256733,
+      "dd": 0.07090387446763304
+     },
+     "R1": {
+      "veredicto": "NO CUMPLE",
+      "criterios": {
+       "CAGR > 0": false,
+       "Calmar > BTC buy&hold": false,
+       "Calmar > equiponderado buy&hold": true,
+       "DD <= 50% del DD de BTC buy&hold": false,
+       "n >= 100": true,
+       "CAGR > 0 sin el mejor trade": false,
+       "mediana por moneda del PnL > 0": false,
+       "ninguna moneda > 40% de la ganancia": false
+      },
+      "n": 150,
+      "calmar": -0.17499124281782324,
+      "cagr": -0.11836010838814093,
+      "dd": 0.6528065642286749
+     }
+    },
+    "mirada": 1,
+    "candidato": null
+   }
+  },
+  "allcoins_2024": {
+   "coins": 47,
+   "window": [
+    "2024-01-01 00:00:00",
+    "2026-10-12 00:00:00"
+   ]
+  }
+ },
+ "d1": {
+  "train": {
+   "window": [
+    "2017-01-01 00:00:00",
+    "2023-12-31 23:59:59"
+   ],
+   "coins": [
+    "BTC",
+    "ETH",
+    "XRP",
+    "LTC",
+    "ADA",
+    "DOGE"
+   ],
+   "puntos": 128,
+   "referencias": 2,
+   "pasadas": 2,
+   "pruebas": 260,
+   "factibles": 14,
+   "max_n": 345,
+   "candidato": {
+    "p1": "bear",
+    "p2": true,
+    "p3": 10,
+    "p4": 20,
+    "p5": "vol"
+   },
+   "meseta": 0.3542648129872983
+  },
+  "looks": {
+   "z2": {
+    "coins": [
+     "ALGO",
+     "AVAX",
+     "ETC",
+     "ICP",
+     "TRX",
+     "VET"
+    ],
+    "window": [
+     "2018-12-28 00:00:00",
+     "2026-10-20 00:00:00"
+    ],
+    "veredictos": {
+     "candidato": {
+      "veredicto": "NO CUMPLE",
+      "criterios": {
+       "CAGR > 0": true,
+       "Calmar > BTC buy&hold": false,
+       "Calmar > equiponderado buy&hold": true,
+       "DD <= 50% del DD de BTC buy&hold": false,
+       "n >= 100": true,
+       "CAGR > 0 sin el mejor trade": true,
+       "mediana por moneda del PnL > 0": true,
+       "ninguna moneda > 40% de la ganancia": false
+      },
+      "n": 415,
+      "calmar": 0.3192761451007154,
+      "cagr": 0.1767095916964858,
+      "dd": 0.567047297309179
+     },
+     "R0": {
+      "veredicto": "NO CUMPLE",
+      "criterios": {
+       "CAGR > 0": true,
+       "Calmar > BTC buy&hold": false,
+       "Calmar > equiponderado buy&hold": true,
+       "DD <= 50% del DD de BTC buy&hold": true,
+       "n >= 100": true,
+       "CAGR > 0 sin el mejor trade": true,
+       "mediana por moneda del PnL > 0": true,
+       "ninguna moneda > 40% de la ganancia": false
+      },
+      "n": 416,
+      "calmar": 0.23481484904365107,
+      "cagr": 0.06085717149629288,
+      "dd": 0.2586786770565835
+     },
+     "R1": {
+      "veredicto": "NO CUMPLE",
+      "criterios": {
+       "CAGR > 0": true,
+       "Calmar > BTC buy&hold": false,
+       "Calmar > equiponderado buy&hold": true,
+       "DD <= 50% del DD de BTC buy&hold": false,
+       "n >= 100": true,
+       "CAGR > 0 sin el mejor trade": true,
+       "mediana por moneda del PnL > 0": true,
+       "ninguna moneda > 40% de la ganancia": false
+      },
+      "n": 537,
+      "calmar": 0.5396192182592142,
+      "cagr": 0.32414653194477916,
+      "dd": 0.5957076010209854
+     }
+    },
+    "mirada": 1,
+    "candidato": {
+     "p1": "bear",
+     "p2": true,
+     "p3": 10,
+     "p4": 20,
+     "p5": "vol"
+    }
+   },
+   "z3": {
+    "coins": [
+     "1INCH",
+     "ACM",
+     "AGLD",
+     "ALICE",
+     "ANKR",
+     "AR",
+     "ARPA",
+     "ASR",
+     "ATM",
+     "AUDIO",
+     "AVA",
+     "AXS",
+     "BAND",
+     "BAR",
+     "BAT",
+     "BEL",
+     "BNT",
+     "C98",
+     "CAKE",
+     "CELO",
+     "CELR",
+     "CFX",
+     "CHR",
+     "CHZ"
+    ],
+    "window": [
+     "2019-09-20 00:00:00",
+     "2026-10-20 00:00:00"
+    ],
+    "veredictos": {
+     "candidato": {
+      "veredicto": "NO CUMPLE",
+      "criterios": {
+       "CAGR > 0": true,
+       "Calmar > BTC buy&hold": false,
+       "Calmar > equiponderado buy&hold": true,
+       "DD <= 50% del DD de BTC buy&hold": false,
+       "n >= 100": true,
+       "CAGR > 0 sin el mejor trade": true,
+       "mediana por moneda del PnL > 0": false,
+       "ninguna moneda > 40% de la ganancia": false
+      },
+      "n": 611,
+      "calmar": 0.18381454230272234,
+      "cagr": 0.166217105457521,
+      "dd": 0.9042652631029579
+     },
+     "R0": {
+      "veredicto": "NO CUMPLE",
+      "criterios": {
+       "CAGR > 0": true,
+       "Calmar > BTC buy&hold": true,
+       "Calmar > equiponderado buy&hold": true,
+       "DD <= 50% del DD de BTC buy&hold": true,
+       "n >= 100": true,
+       "CAGR > 0 sin el mejor trade": true,
+       "mediana por moneda del PnL > 0": true,
+       "ninguna moneda > 40% de la ganancia": false
+      },
+      "n": 735,
+      "calmar": 0.47718446348446014,
+      "cagr": 0.15737477178806114,
+      "dd": 0.3297986079406086
+     },
+     "R1": {
+      "veredicto": "NO CUMPLE",
+      "criterios": {
+       "CAGR > 0": true,
+       "Calmar > BTC buy&hold": false,
+       "Calmar > equiponderado buy&hold": true,
+       "DD <= 50% del DD de BTC buy&hold": false,
+       "n >= 100": true,
+       "CAGR > 0 sin el mejor trade": true,
+       "mediana por moneda del PnL > 0": false,
+       "ninguna moneda > 40% de la ganancia": false
+      },
+      "n": 634,
+      "calmar": 0.15735645677709478,
+      "cagr": 0.14575391744190958,
+      "dd": 0.9262658833782657
+     }
+    },
+    "mirada": 1,
+    "candidato": {
+     "p1": "bear",
+     "p2": true,
+     "p3": 10,
+     "p4": 20,
+     "p5": "vol"
+    }
+   }
+  },
+  "allcoins_2024": {
+   "coins": 47,
+   "window": [
+    "2024-01-01 00:00:00",
+    "2026-10-20 00:00:00"
+   ]
+  }
+ },
+ "h4": {
+  "train": {
+   "window": [
+    "2017-01-01 00:00:00",
+    "2023-12-31 23:59:59"
+   ],
+   "coins": [
+    "BTC",
+    "ETH",
+    "XRP",
+    "LTC",
+    "ADA",
+    "DOGE"
+   ],
+   "puntos": 96,
+   "referencias": 2,
+   "pasadas": 2,
+   "pruebas": 196,
+   "factibles": 18,
+   "max_n": 448,
+   "candidato": {
+    "p1": "bear",
+    "p2": true,
+    "p3": 20,
+    "p4": 50,
+    "p5": "risk"
+   },
+   "meseta": 0.7690063075960698
+  },
+  "looks": {
+   "z2": {
+    "coins": [
+     "ALGO",
+     "AVAX",
+     "ETC",
+     "ICP",
+     "TRX",
+     "VET"
+    ],
+    "window": [
+     "2018-07-14 16:00:00",
+     "2026-10-20 20:00:00"
+    ],
+    "veredictos": {
+     "candidato": {
+      "veredicto": "NO CUMPLE",
+      "criterios": {
+       "CAGR > 0": true,
+       "Calmar > BTC buy&hold": false,
+       "Calmar > equiponderado buy&hold": true,
+       "DD <= 50% del DD de BTC buy&hold": true,
+       "n >= 100": true,
+       "CAGR > 0 sin el mejor trade": true,
+       "mediana por moneda del PnL > 0": true,
+       "ninguna moneda > 40% de la ganancia": false
+      },
+      "n": 547,
+      "calmar": 0.36752157643499517,
+      "cagr": 0.13250622434489978,
+      "dd": 0.36053998687703337
+     },
+     "R0": {
+      "veredicto": "NO CUMPLE",
+      "criterios": {
+       "CAGR > 0": true,
+       "Calmar > BTC buy&hold": false,
+       "Calmar > equiponderado buy&hold": false,
+       "DD <= 50% del DD de BTC buy&hold": true,
+       "n >= 100": true,
+       "CAGR > 0 sin el mejor trade": true,
+       "mediana por moneda del PnL > 0": true,
+       "ninguna moneda > 40% de la ganancia": false
+      },
+      "n": 521,
+      "calmar": 0.08599377560905147,
+      "cagr": 0.028666689898372733,
+      "dd": 0.33335773078156783
+     },
+     "R1": {
+      "veredicto": "NO CUMPLE",
+      "criterios": {
+       "CAGR > 0": true,
+       "Calmar > BTC buy&hold": true,
+       "Calmar > equiponderado buy&hold": true,
+       "DD <= 50% del DD de BTC buy&hold": false,
+       "n >= 100": true,
+       "CAGR > 0 sin el mejor trade": true,
+       "mediana por moneda del PnL > 0": true,
+       "ninguna moneda > 40% de la ganancia": false
+      },
+      "n": 538,
+      "calmar": 0.6332613303686491,
+      "cagr": 0.3663603969045801,
+      "dd": 0.5786229153113525
+     }
+    },
+    "mirada": 1,
+    "candidato": {
+     "p1": "bear",
+     "p2": true,
+     "p3": 20,
+     "p4": 50,
+     "p5": "risk"
+    }
+   },
+   "z3": {
+    "coins": [
+     "1INCH",
+     "ACM",
+     "AGLD",
+     "ALICE",
+     "ANKR",
+     "AR",
+     "ARPA",
+     "ASR",
+     "ATM",
+     "AUDIO",
+     "AVA",
+     "AXS",
+     "BAND",
+     "BAR",
+     "BAT",
+     "BEL",
+     "BNT",
+     "C98",
+     "CAKE",
+     "CELO",
+     "CELR",
+     "CFX",
+     "CHR",
+     "CHZ"
+    ],
+    "window": [
+     "2019-04-06 16:00:00",
+     "2026-10-20 20:00:00"
+    ],
+    "veredictos": {
+     "candidato": {
+      "veredicto": "NO CUMPLE",
+      "criterios": {
+       "CAGR > 0": true,
+       "Calmar > BTC buy&hold": false,
+       "Calmar > equiponderado buy&hold": true,
+       "DD <= 50% del DD de BTC buy&hold": false,
+       "n >= 100": true,
+       "CAGR > 0 sin el mejor trade": true,
+       "mediana por moneda del PnL > 0": false,
+       "ninguna moneda > 40% de la ganancia": false
+      },
+      "n": 886,
+      "calmar": 0.07187449540734589,
+      "cagr": 0.05387633393889013,
+      "dd": 0.7095271532870421
+     },
+     "R0": {
+      "veredicto": "NO CUMPLE",
+      "criterios": {
+       "CAGR > 0": false,
+       "Calmar > BTC buy&hold": false,
+       "Calmar > equiponderado buy&hold": true,
+       "DD <= 50% del DD de BTC buy&hold": false,
+       "n >= 100": true,
+       "CAGR > 0 sin el mejor trade": false,
+       "mediana por moneda del PnL > 0": false,
+       "ninguna moneda > 40% de la ganancia": false
+      },
+      "n": 1878,
+      "calmar": -0.07738719430857613,
+      "cagr": -0.06840870774973506,
+      "dd": 0.8839796863155425
+     },
+     "R1": {
+      "veredicto": "NO CUMPLE",
+      "criterios": {
+       "CAGR > 0": true,
+       "Calmar > BTC buy&hold": false,
+       "Calmar > equiponderado buy&hold": true,
+       "DD <= 50% del DD de BTC buy&hold": false,
+       "n >= 100": true,
+       "CAGR > 0 sin el mejor trade": true,
+       "mediana por moneda del PnL > 0": false,
+       "ninguna moneda > 40% de la ganancia": false
+      },
+      "n": 600,
+      "calmar": 0.11256359559499896,
+      "cagr": 0.10599958176315205,
+      "dd": 0.9416861748494241
+     }
+    },
+    "mirada": 1,
+    "candidato": {
+     "p1": "bear",
+     "p2": true,
+     "p3": 20,
+     "p4": 50,
+     "p5": "risk"
+    }
+   }
+  },
+  "allcoins_2024": {
+   "coins": 47,
+   "window": [
+    "2024-01-01 00:00:00",
+    "2026-10-20 20:00:00"
+   ]
+  }
+ }
+}

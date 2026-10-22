@@ -40,6 +40,10 @@ DEFAULTS: dict = dict(
     # extremo, 0 = off), V2 break-even (stop a la entrada al cerrar a +beR x riesgo inicial, 0 = off), V3 salida contra la
     # EMA55 en vez de la EMA20 (exitMid), V4 largos solo si BTC D1 de ayer cerro sobre su EMA200 (regimeFilter).
     trailK=0.0, beR=0.0, exitMid=False, regimeFilter=False,
+    # Palancas de la Fase 7 (docs/PROTOCOLO.md), TODAS apagadas: P4 largos solo con el TF mayor alcista (longHtf), P1 cortos solo
+    # con el TF mayor bajista (shortHtf; los flags vienen en `htf`), P3 salida de A y B por trailing de Donchian de M cierres
+    # previos en vez de la EMA20 (donchExit = M, 0 = off).
+    longHtf=False, shortHtf=False, donchExit=0,
     rsiLen=14, maType="SMA", maLen=14,
     # Senal A y base
     emaFLen=20, emaMLen=55, emaSLen=200, adxLen=14, adxMin=20.0, pbBars=5, atrLen=14, atrMult=0.25, useRsiF=True,
@@ -101,12 +105,25 @@ class SimResult:
         return pd.DataFrame(rows)
 
 
-def simulate(df: pd.DataFrame, ind: dict | None = None, regime: np.ndarray | None = None, **over) -> SimResult:
+def prev_close_min(c: np.ndarray, m: int) -> np.ndarray:
+    """Minimo de los m cierres PREVIOS (la vela actual no entra en la ventana); NaN hasta tener m cierres previos."""
+    return np.r_[np.nan, rolling_min(c, m)[:-1]]
+
+
+def prev_close_max(c: np.ndarray, m: int) -> np.ndarray:
+    return np.r_[np.nan, rolling_max(c, m)[:-1]]
+
+
+def simulate(df: pd.DataFrame, ind: dict | None = None, regime: np.ndarray | None = None, htf: dict | None = None,
+             **over) -> SimResult:
     """`ind`: salida de indicators.compute(df, p) ya calculada (el optimizador la cachea por set de parametros de
     indicadores); tiene que corresponder a los mismos parametros de indicadores que `over`. Sin `ind`, se calcula.
-    `regime`: bandera por vela del filtro V4 (variants.regime_flags); si regimeFilter esta prendido y no viene, se calcula."""
+    `regime`: bandera por vela del filtro V4 (variants.regime_flags); si regimeFilter esta prendido y no viene, se calcula.
+    `htf`: {'bull': bool[n], 'bear': bool[n]} del TF mayor (htf.htf_flags); lo usan longHtf / shortHtf (Fase 7, P4 y P1)."""
     p = dict(DEFAULTS)
     p.update(over)
+    if (p["longHtf"] or p["shortHtf"]) and htf is None:
+        raise ValueError("longHtf/shortHtf necesitan los flags del TF mayor (parametro htf)")
     d = ind if ind is not None else compute(df, p)
     if p["regimeFilter"] and regime is None:
         from .variants import regime_flags
@@ -130,6 +147,10 @@ def simulate(df: pd.DataFrame, ind: dict | None = None, regime: np.ndarray | Non
     rsiCold = rolling_min(rsi, p["cLook"]) <= p["cCold"]
     stopCS_a = rolling_max(h, p["cStopBars"]) + p["cAtrMult"] * atr
     stopCL_a = rolling_min(l, p["cStopBars"]) - p["cAtrMult"] * atr
+
+    dM = int(p["donchExit"])
+    dxLow = prev_close_min(c, dM) if dM else None
+    dxHigh = prev_close_max(c, dM) if dM else None
 
     mt = p["mintick"]
 
@@ -236,9 +257,10 @@ def simulate(df: pd.DataFrame, ind: dict | None = None, regime: np.ndarray | Non
         trigShort = c[i] < e1 and c[i] < lPrev
         rsiLongOk = (not p["useRsiF"]) or rsi[i] > rsiMa[i]
         rsiShortOk = (not p["useRsiF"]) or rsi[i] < rsiMa[i]
-        regOk = (not p["regimeFilter"]) or bool(regime[i])    # V4: solo condiciona los largos
+        regOk = ((not p["regimeFilter"]) or bool(regime[i])) and ((not p["longHtf"]) or bool(htf["bull"][i]))   # V4 y P4: solo largos
+        shOk = (not p["shortHtf"]) or bool(htf["bear"][i])                                                        # P1: solo cortos
         longRawA = regOk and p["useA"] and p["aLong"] and upTrend and adxOk and setupLong[i] and trigLong and rsiLongOk and volOk
-        shortRawA = p["useA"] and p["aShort"] and downTrend and adxOk and setupShort[i] and trigShort and rsiShortOk and volOk
+        shortRawA = shOk and p["useA"] and p["aShort"] and downTrend and adxOk and setupShort[i] and trigShort and rsiShortOk and volOk
         longSigA = shortSigA = False
         if longRawA and (lastLong is None or i - lastLong > pb):
             longSigA, lastLong = True, i
@@ -253,7 +275,7 @@ def simulate(df: pd.DataFrame, ind: dict | None = None, regime: np.ndarray | Non
         momDown = mom[i] < 0 and mom[i] < momPrev
         longSigB = (regOk and p["useB"] and p["bLong"] and armedPrev and c[i] > rHiPrev and ((not p["needE200"]) or c[i] > e3)
                     and ((not p["needMom"]) or momUp) and volOk)
-        shortSigB = (p["useB"] and p["bShort"] and armedPrev and c[i] < rLoPrev and ((not p["needE200"]) or c[i] < e3)
+        shortSigB = (shOk and p["useB"] and p["bShort"] and armedPrev and c[i] < rLoPrev and ((not p["needE200"]) or c[i] < e3)
                      and ((not p["needMom"]) or momDown) and volOk)
         if sqzOn[i]:
             if sinceOn > 0:
@@ -279,7 +301,7 @@ def simulate(df: pd.DataFrame, ind: dict | None = None, regime: np.ndarray | Non
         stopCS, stopCL = stopCS_a[i], stopCL_a[i]
         riskOkS = p["cMaxRisk"] == 0 or stopCS - c[i] <= p["cMaxRisk"] * atr[i]
         riskOkL = p["cMaxRisk"] == 0 or c[i] - stopCL <= p["cMaxRisk"] * atr[i]
-        shortSigC = (p["useC"] and p["cShort"] and cArmS is not None and i - cArmS <= p["cWin"] and rsi[i] < rsiMa[i]
+        shortSigC = (shOk and p["useC"] and p["cShort"] and cArmS is not None and i - cArmS <= p["cWin"] and rsi[i] < rsiMa[i]
                      and ((not p["cNeedMom"]) or mom[i] < momPrev) and ((not p["cNeedEma"]) or c[i] < e1)
                      and riskOkS and posNow != -1)
         longSigC = (regOk and p["useC"] and p["cLong"] and cArmL is not None and i - cArmL <= p["cWin"] and rsi[i] > rsiMa[i]
@@ -314,17 +336,20 @@ def simulate(df: pd.DataFrame, ind: dict | None = None, regime: np.ndarray | Non
         riskOkDS = p["dMaxRisk"] == 0 or stopDS - c[i] <= p["dMaxRisk"] * atr[i]
         longSigD = (regOk and p["useD"] and p["dLong"] and bullDiv and c[i] > stopDL and ((not p["dNeedEma"]) or c[i] > e1)
                     and riskOkDL and posNow != 1)
-        shortSigD = (p["useD"] and p["dShort"] and bearDiv and c[i] < stopDS and ((not p["dNeedEma"]) or c[i] < e1)
+        shortSigD = (shOk and p["useD"] and p["dShort"] and bearDiv and c[i] < stopDS and ((not p["dNeedEma"]) or c[i] < e1)
                      and riskOkDS and posNow != -1)
 
         # 5) salidas por condicion (strategy.close al cierre)
         eb = entryBar if entryBar is not None else -999
         ex = e2 if p["exitMid"] else e1       # V3: EMA de salida (default EMA20)
-        if posNow == 1 and (c[i] < ex or (posType == 2 and i - eb <= invBars and c[i] < entHi)):
-            reason = "ema" if c[i] < ex else "inval"
+        dx = dM > 0 and posType in (1, 2)     # P3: A y B salen por Donchian (C y D siguen con la EMA)
+        outL = (c[i] < dxLow[i]) if dx else (c[i] < ex)
+        outS = (c[i] > dxHigh[i]) if dx else (c[i] > ex)
+        if posNow == 1 and (outL or (posType == 2 and i - eb <= invBars and c[i] < entHi)):
+            reason = ("donch" if dx else "ema") if outL else "inval"
             close_pos(i, r_fill(c[i]), reason)
-        elif posNow == -1 and (c[i] > ex or (posType == 2 and i - eb <= invBars and c[i] > entLo)):
-            reason = "ema" if c[i] > ex else "inval"
+        elif posNow == -1 and (outS or (posType == 2 and i - eb <= invBars and c[i] > entLo)):
+            reason = ("donch" if dx else "ema") if outS else "inval"
             close_pos(i, r_fill(c[i]), reason)
 
         # 6) entradas (cadena else-if con prioridad B, A, C)

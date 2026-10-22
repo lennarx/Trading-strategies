@@ -1,0 +1,15 @@
+# Fase 7 D1 en Z3 (una sola mirada)
+
+Monedas: 1INCH, ACM, AGLD, ALICE, ANKR, AR, ARPA, ASR, ATM, AUDIO, AVA, AXS, BAND, BAR, BAT, BEL, BNT, C98, CAKE, CELO, CELR, CFX, CHR, CHZ. Tramo: 2019-09-20 00:00:00 a 2026-10-20 00:00:00.
+
+| tramo | config | n | n_sub | R_medio | CAGR | DD | Calmar | CAGR_cerrada | DD_cerrada | CAGR_sin_mejor | mediana_PnL_moneda | conc_max | BTC_CAGR | BTC_DD | BTC_Calmar | EW_CAGR | EW_DD | EW_Calmar | saltados | criterios | veredicto_grupo | fallan |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| todo el historial | candidato [P1=bear P2=E P3=10 P4=20 P5=vol] | 611 | 813.000 | 0.234 | 0.166 | 0.904 | 0.184 | 0.133 | 0.856 | 0.144 | -1841.280 | 1.975 | 0.345 | 0.767 | 0.450 | -0.057 | 0.991 | -0.058 | 1621.000 | 4/8 | NO CUMPLE | Calmar > BTC buy&hold; DD <= 50% del DD de BTC buy&hold; mediana por moneda del PnL > 0; ninguna moneda > 40% de la ganancia |
+| todo el historial | R0 [P1=normal P2=- P3=EMA20 P4=- P5=risk] | 735 | 735.000 | 0.217 | 0.157 | 0.330 | 0.477 | 0.155 | 0.307 | 0.096 | 106.624 | 0.518 | 0.345 | 0.767 | 0.450 | -0.057 | 0.991 | -0.058 | 579.000 | 7/8 | NO CUMPLE | ninguna moneda > 40% de la ganancia |
+| todo el historial | R1 | 634 | 3068.000 | 0.397 | 0.146 | 0.926 | 0.157 | 0.139 | 0.835 | 0.126 | -3511.998 | 3.931 | 0.345 | 0.767 | 0.450 | -0.057 | 0.991 | -0.058 | 6408.000 | 4/8 | NO CUMPLE | Calmar > BTC buy&hold; DD <= 50% del DD de BTC buy&hold; mediana por moneda del PnL > 0; ninguna moneda > 40% de la ganancia |
+| todo el historial | R1 informativa (sin cupo ni tope bruto) | 1006 | 5658.000 | 0.386 | -1.000 | 1.022 | -0.979 | -1.000 | 1.049 | -1.000 | -16635.999 | nan | 0.345 | 0.767 | 0.450 | -0.057 | 0.991 | -0.058 | 3835.000 | nan | nan | nan |
+| 2024-hoy | candidato [P1=bear P2=E P3=10 P4=20 P5=vol] | 285 | 349.000 | -0.105 | -0.388 | 0.868 | -0.436 | -0.431 | 0.844 | -0.396 | -336.669 | nan | 0.252 | 0.531 | 0.475 | -0.406 | 0.894 | -0.455 | 801.000 | 2/8 | NO CUMPLE | CAGR > 0; Calmar > BTC buy&hold; DD <= 50% del DD de BTC buy&hold; CAGR > 0 sin el mejor trade; mediana por moneda del PnL > 0; ninguna moneda > 40% de la ganancia |
+| 2024-hoy | R0 [P1=normal P2=- P3=EMA20 P4=- P5=risk] | 328 | 328.000 | 0.003 | -0.003 | 0.318 | -0.010 | -0.010 | 0.234 | -0.018 | -61.421 | nan | 0.252 | 0.531 | 0.475 | -0.406 | 0.894 | -0.455 | 289.000 | 2/8 | NO CUMPLE | CAGR > 0; Calmar > BTC buy&hold; DD <= 50% del DD de BTC buy&hold; CAGR > 0 sin el mejor trade; mediana por moneda del PnL > 0; ninguna moneda > 40% de la ganancia |
+| 2024-hoy | R1 | 321 | 1268.000 | -0.150 | -0.338 | 0.803 | -0.426 | -0.350 | 0.748 | -0.355 | -257.894 | nan | 0.252 | 0.531 | 0.475 | -0.406 | 0.894 | -0.455 | 3013.000 | 2/8 | NO CUMPLE | CAGR > 0; Calmar > BTC buy&hold; DD <= 50% del DD de BTC buy&hold; CAGR > 0 sin el mejor trade; mediana por moneda del PnL > 0; ninguna moneda > 40% de la ganancia |
+| 2024-hoy | R1 informativa (sin cupo ni tope bruto) | 1005 | 4242.000 | -0.080 | -0.899 | 1.000 | -0.899 | -0.913 | 1.000 | -0.906 | -420.689 | nan | 0.252 | 0.531 | 0.475 | -0.406 | 0.894 | -0.455 | 0.000 | nan | nan | nan |
+

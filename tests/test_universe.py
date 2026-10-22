@@ -24,4 +24,4 @@ def test_hardcoded_groups_match_the_mechanical_rule():
 
 def test_all_group_does_not_include_fresh_coins():
     assert set(U.load_universe.__defaults__) == {"all"}
-    assert not (set(U.SOURCES) - set(U.TRAIN) - set(U.HOLDOUT) - set(U.FRESH_Z1) - set(U.FRESH_Z2))
+    assert not (set(U.SOURCES) - set(U.TRAIN) - set(U.HOLDOUT) - set(U.FRESH_Z1) - set(U.FRESH_Z2) - set(U.FRESH_Z3))

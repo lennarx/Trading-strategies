@@ -1,0 +1,89 @@
+{
+ "w1": {
+  "train": {
+   "window": [
+    "2017-01-01 00:00:00",
+    "2023-12-31 23:59:59"
+   ],
+   "coins": [
+    "BTC",
+    "ETH",
+    "XRP",
+    "LTC",
+    "ADA",
+    "DOGE"
+   ],
+   "puntos": 16,
+   "referencias": 2,
+   "pruebas": 18,
+   "factibles": 4,
+   "max_n": 293,
+   "candidato": {
+    "p1": "off",
+    "p2": true,
+    "p3": 10,
+    "p4": 0,
+    "p5": "vol"
+   },
+   "meseta": 0.46201693207540284
+  }
+ },
+ "d1": {
+  "train": {
+   "window": [
+    "2017-01-01 00:00:00",
+    "2023-12-31 23:59:59"
+   ],
+   "coins": [
+    "BTC",
+    "ETH",
+    "XRP",
+    "LTC",
+    "ADA",
+    "DOGE"
+   ],
+   "puntos": 128,
+   "referencias": 2,
+   "pruebas": 130,
+   "factibles": 21,
+   "max_n": 538,
+   "candidato": {
+    "p1": "off",
+    "p2": true,
+    "p3": 10,
+    "p4": 20,
+    "p5": "vol"
+   },
+   "meseta": 0.9819133865029371
+  }
+ },
+ "h4": {
+  "train": {
+   "window": [
+    "2017-01-01 00:00:00",
+    "2023-12-31 23:59:59"
+   ],
+   "coins": [
+    "BTC",
+    "ETH",
+    "XRP",
+    "LTC",
+    "ADA",
+    "DOGE"
+   ],
+   "puntos": 96,
+   "referencias": 2,
+   "pruebas": 98,
+   "factibles": 19,
+   "max_n": 664,
+   "candidato": {
+    "p1": "off",
+    "p2": true,
+    "p3": 20,
+    "p4": 0,
+    "p5": "risk"
+   },
+   "meseta": 0.7990473238274733
+  }
+ }
+}

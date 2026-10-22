@@ -1,0 +1,50 @@
+{
+ "BTC_1d_defaults": {
+  "n": 90,
+  "pnl": 9298.3896,
+  "hash": "f22bdb74e0e844e9b9ca738d44d307f4982814822b7a0e7891d4afc9f5b6ac52",
+  "final_equity": 19298.3896
+ },
+ "BTC_1d_vigente": {
+  "n": 85,
+  "pnl": 10189.3211,
+  "hash": "4a444b8edaf2bf447c77fba6f93dae7028f08516620df1d00a2ba9f2b4bda9c0",
+  "final_equity": 20189.3211
+ },
+ "ETH_4h_defaults": {
+  "n": 487,
+  "pnl": 15843.2722,
+  "hash": "21f5383643d338adf6822e1e0927ad2452c2a91c13e3335b070edbec806f6b63",
+  "final_equity": 25843.2722
+ },
+ "ETH_4h_vigente": {
+  "n": 88,
+  "pnl": 3607.7152,
+  "hash": "9ff6075807ee89f9e926da61ec871657ef79e75f4308b31bfd9d35f117a6b604",
+  "final_equity": 13607.7152
+ },
+ "SOL_1w_defaults": {
+  "n": 6,
+  "pnl": -112.4699,
+  "hash": "b5a3da5b20172ea348ae79defdeb00da9b0a9ba333c57f64889c70f096100b89",
+  "final_equity": 9887.5301
+ },
+ "SOL_1w_vigente": {
+  "n": 5,
+  "pnl": -29.9943,
+  "hash": "7d618a3c199bb17cf6c8ad2141dba0ee4f4869c156d3ffd852a49f570fd1fd9c",
+  "final_equity": 9970.0057
+ },
+ "DOGE_1d_defaults": {
+  "n": 59,
+  "pnl": 6675.9481,
+  "hash": "a673164a38b1c2faa0757d44b7eaa6a2d274ce6c060ec3650b52f1bef5f284f6",
+  "final_equity": 16675.9481
+ },
+ "DOGE_1d_vigente": {
+  "n": 51,
+  "pnl": 6224.5272,
+  "hash": "8daccdbc2c8aa59d0508d9a5a726d161c68e46dd4ae63e13abc5a3e5e527fd44",
+  "final_equity": 16224.5272
+ }
+}
