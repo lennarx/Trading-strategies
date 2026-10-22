@@ -63,3 +63,21 @@ Notas de las corridas del 2026-10-21 (hechas con Claude in Chrome, plan gratis, 
 - **No verificado:** el cartel "Preset: ..." del unificado (el texto de la tabla no sale en `innerText`); el preset automático se infiere de que los números coinciden con los del script de cada TF (filas 4 a 6).
 - **Cómo se leyó:** `javascript_tool` sobre `document.body.innerText` entre "Key stats" y "Performance analysis"; lista de trades con el panel maximizado y orden por "Trade number". Precios vivos para valuar la posición abierta del port: BTC 84.170 (4h) y 84.187 (1W), SOL 107,37, ETH 2.474,8.
 - Cuenta de pruebas manuales: 9 corridas (filas 18 a 26). Total desde la Fase 5: **26**. Ninguna se usó para tocar parámetros.
+
+
+## Tanda de la Fase 8 (2026-10-22, ~00:45 a 01:00 UTC-3, Claude in Chrome, plan gratis; permiso dado en el /goal: sacar/cargar scripts, cambiar símbolo/TF, guardar el script final sin publicar)
+
+**Entregable validado = la capa E fiel (solo visual) del unificado.** Script: `pine/sqz_rsi_strategy_unified.pine` (606 líneas, 32.036 caracteres, regenerado por `genpine` con la capa E fiel; las strategies por TF y el indicador no cambiaron). **Estado inicial del gráfico:** layout "Sin nombre" (`/chart/kPZnzVWr/`), BTCUSD (Bitstamp) **1W**, solo el demo de Makroni. Se abrió el Pine Editor (que traía "SQZ+RSI Fase 7" guardado), se hizo **"Make a copy" → "SQZ+RSI Fase 8"** (la Fase 7 NO se tocó), se pegó el código por portapapeles, "Add to chart" y "Save" (guardado en la cuenta, **sin publicar**).
+
+| # | Script | Símbolo | TF | Compiló | Qué se comparó | Resultado |
+|---|---|---|---|---|---|---|
+| 27 | unificado + capa E fiel ("SQZ+RSI Fase 8", título interno "SQZ+RSI BT AUTO") | BTCUSD (Bitstamp) | 1D | **SI** compiló (Add to chart sin errores; el script quedó en el gráfico con las 9 líneas de stop de E y el Strategy Tester) | leyenda del script (valores de los plots de E en cada vela, leídos del DOM al pasar el cursor) contra `r1fiel.ensemble` sobre las velas de Bitstamp: 8 fechas (18, 19, 20 y 21-oct; 1-oct; 28, 16 y 13-sep) | **Coincide en todas**: entradas por lookback (fecha), stops de los 9 lookbacks, sub-señales abiertas (de 9), peso objetivo (%). Ej.: 21-oct stops N=5 82.165, N=10 82.532, N=60 81.082, N=90 74.673, N=150 72.556, 5 abiertas, peso 37%; 1-oct N=5 83.959, 6 abiertas, 1 entrada |
+| 28 | idem | ETHUSD (Bitstamp) | 1D | si | 8 fechas (21 y 20-oct; 4 y 1-oct; 18, 11, 6 y 3-sep): cierre de la vela, stops, abiertas, entradas, vol, peso | **8 de 8 idénticas al port** (ej. 4-oct: 2.686,8; 2.686,8; 2.586,1; 2.586,1; 2.323,5; 2.259,0; 2.170,5; 7 abiertas, 2 entradas, peso 37,3%) |
+| 29 | idem | SOLUSDT (Binance) | 1D | si | 6 fechas (21 y 20-oct; 3 y 30-sep; 18 y 6-sep) | **6 de 6 idénticas** (las diferencias de 0,01 USD en pantalla, p. ej. 105,01 vs 105,00, son redondeo de un valor x,xx5) |
+| 30 | idem (control) | BTCUSD | 1D | si | la lista de operaciones de la strategy (la capa E no coloca órdenes) | **113 trades**, el mismo número que la Fase 7 (fila 19): la capa E no alteró la strategy |
+
+- **Lo que se compara:** el port es `sqzlab.r1fiel` (mismos datos: Bitstamp para BTC y ETH, Binance para SOL). **Diferencia de representación (no es un error):** en la vela de salida de una sub-señal el port guarda el stop que se perforó y el Pine no dibuja nada (la línea se corta); no se cuenta como diferencia. En la vela de salida el port y TV coinciden en la cantidad de sub-señales abiertas.
+- **No verificado:** H4 en TV (no se probó); el comportamiento en TV de la capa con historia corta (<360 velas); el cartel "Preset: ..." sigue sin leerse (heredado). `display=display.status_line + display.data_window` compiló y los valores se leen en la leyenda.
+- **Estado final del gráfico:** se sacó la strategy de la leyenda (tacho) y se volvió a BTCUSD 1W; queda solo el demo de Makroni (como al empezar). No se tocó Makroni, no se publicó, no se crearon alertas ni se cambió nada de la cuenta. El layout "Sin nombre" no se guardó. Se cambió de símbolo (ETHUSD desde la lista de seguimiento; SOLUSDT con el buscador).
+- **Guardado:** "SQZ+RSI Fase 8" en la cuenta (Pine Editor), **sin publicar**; "SQZ+RSI Fase 7" intacta.
+- Cuenta de pruebas manuales: 4 corridas (filas 27 a 30). Total desde la Fase 5: **30**. Ninguna se usó para tocar parámetros.

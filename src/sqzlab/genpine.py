@@ -99,6 +99,71 @@ def per_tf(lines: list[str], params: dict, label: str) -> str:
     return "\n".join(out[:1] + hdr + out[1:]) + "\n"
 
 
+# ----------------------------------------------------------------------------------------------------------------
+# Capa E fiel (Fase 8): ensamble de Donchian de la estrategia R1-fiel, SOLO VISUAL (no abre ordenes), en el unificado.
+# Parametros de params/r1fiel.json; la logica es la de src/sqzlab/r1fiel.py (tests/test_fase8.py la prueba contra calculos a mano).
+# ----------------------------------------------------------------------------------------------------------------
+R1FIEL = ROOT / "params" / "r1fiel.json"
+E_COLORS = ["color.yellow", "color.orange", "color.red", "color.fuchsia", "color.purple", "color.blue", "color.aqua", "color.teal", "color.green"]
+
+
+def r1fiel_params() -> dict:
+    d = json.loads(R1FIEL.read_text(encoding="utf-8"))
+    return {k: v for k, v in d.items() if not k.startswith("_")}
+
+
+def e_layer(ps: dict | None = None) -> list[str]:
+    """Lineas Pine de la capa E fiel. D1: N = dias; H4: N x 6 (velas por dia = 86400 / segundos del timeframe). Sin ordenes."""
+    ps = ps or r1fiel_params()
+    days = ps["lookbacks_days"]
+    k = len(days)
+    L = [
+        "",
+        "// ===== Capa E fiel (Fase 8): ensamble de Donchian de la estrategia R1-fiel. GENERADO por genpine desde params/r1fiel.json. SOLO VISUAL: no abre ordenes. =====",
+        "// Por lookback N (en dias; en velas = dias x velas por dia): entra al CIERRE si close > maximo de los N cierres previos; stop = max(stop de ayer, (max+min)/2 de los N cierres previos);",
+        "// sale al CIERRE si close < stop. El peso objetivo de la moneda = abiertas/9 x min(2, 0,25 / vol 90d anualizada). La cartera (top 20 dinamico, tope bruto 2,0, banda 20%) no se puede mostrar en TradingView.",
+        'fzOn  = input.bool(true, "E fiel: mostrar capa (solo visual, no opera)", group="E fiel (Fase 8)")',
+        "fzBpd = 86400.0 / timeframe.in_seconds()",
+        f"fzVolN = math.max(2, int(math.floor({ps['vol_window_days']} * fzBpd + 0.5)))",
+        "fzLr  = math.log(close / close[1])",
+        "fzVol = ta.stdev(fzLr, fzVolN) * math.sqrt(fzVolN / (fzVolN - 1.0)) * math.sqrt(365.0 * fzBpd)   // desvio MUESTRAL (ddof=1) de retornos log, anualizado",
+        f"fzMult = fzVol > 0 ? math.min({float(ps['coin_cap'])}, {ps['vol_target']} / fzVol) : 0.0",
+    ]
+    for d in days:
+        L += [
+            f"fzN{d}  = math.max(2, int(math.floor({d} * fzBpd + 0.5)))",
+            f"fzHi{d} = ta.highest(close, fzN{d})[1]",
+            f"fzLo{d} = ta.lowest(close, fzN{d})[1]",
+            f"fzMid{d} = (fzHi{d} + fzLo{d}) / 2",
+            f"var bool fzPos{d} = false",
+            f"var float fzSt{d} = na",
+            f"fzEnt{d} = false",
+            f"if fzPos{d}",
+            f"    fzSt{d} := math.max(fzSt{d}, fzMid{d})",
+            f"    if close < fzSt{d}",
+            f"        fzPos{d} := false",
+            f"else if close > fzHi{d}",
+            f"    fzPos{d} := true",
+            f"    fzSt{d} := fzMid{d}",
+            f"    fzEnt{d} := true",
+        ]
+    L += [
+        "fzAct = " + " + ".join(f"(fzPos{d} ? 1 : 0)" for d in days),
+        "fzEntN = " + " + ".join(f"(fzEnt{d} ? 1 : 0)" for d in days),
+        f"fzW = fzAct / {float(k)} * fzMult",
+    ]
+    for i, d in enumerate(days):
+        L.append(f'plot(fzOn and fzPos{d} ? fzSt{d} : na, "E stop N={d}d", color=color.new({E_COLORS[i % len(E_COLORS)]}, 25), linewidth=1, style=plot.style_linebr)')
+    L += [
+        'plotshape(fzOn and fzEntN > 0, "E: entra (al menos 1 sub-senal)", style=shape.triangleup, location=location.belowbar, color=color.new(color.teal, 0), size=size.tiny)',
+        'plot(fzOn ? fzAct : na, "E sub-senales abiertas (de 9)", display=display.status_line + display.data_window)',
+        'plot(fzOn ? fzEntN : na, "E entran en esta vela", display=display.status_line + display.data_window)',
+        'plot(fzOn ? fzVol : na, "E vol 90d anualizada", display=display.status_line + display.data_window)',
+        'plot(fzOn ? fzW * 100 : na, "E peso objetivo de la moneda (% equity, sin universo ni tope bruto)", display=display.status_line + display.data_window)',
+    ]
+    return L
+
+
 def unified(lines: list[str], sets: dict[str, dict]) -> str:
     out, names = [], []
     for ln in lines:
@@ -145,7 +210,8 @@ def unified(lines: list[str], sets: dict[str, dict]) -> str:
         "if barstate.islast",
         '    table.cell(infoTbl, 0, 0, "Preset: " + presetName + (useMine ? " | casillas propias" : "") + (presetIdx == 0 or tfCalibrated ? "" : " (TF no calibrado)"), text_color=color.white, bgcolor=color.new(color.gray, 30))',
     ]
-    hdr = ["// GENERADO por src/sqzlab/genpine.py desde params/{h4,d1,w1}.json. NO editar a mano. NO COMPILADO en TradingView."]
+    out += e_layer()
+    hdr = ["// GENERADO por src/sqzlab/genpine.py desde params/{h4,d1,w1}.json y params/r1fiel.json. NO editar a mano. NO COMPILADO en TradingView."]
     return "\n".join(out[:1] + hdr + out[1:]) + "\n"
 
 

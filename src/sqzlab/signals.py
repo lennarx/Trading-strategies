@@ -2,6 +2,7 @@
 
 Uso:  python -m sqzlab.signals --tf h4|d1|w1 --symbols BTC ETH SOL [--source bingx|binance|bitstamp] [--no-fetch]
                                [--donchian 20 60 150 250] [--out archivo.json]
+      python -m sqzlab.signals --strategy r1fiel [--tf d1|h4] [--no-fetch] [--out archivo.json]   (Fase 8: PESOS OBJETIVO de la cartera)
 Un solo motor: es `strategy.simulate` con `params/<tf>.json` (la misma logica del backtest y del Pine). Baja velas con
 `fetch.update_csv`, descarta la vela en curso (`forward.closed_only`) y devuelve un JSON por moneda con la senal de la vela
 cerrada mas reciente. Contrato en docs/BOT.md.
@@ -124,18 +125,66 @@ def build(tf: str, symbols: list[str], source: str, fetch: bool, e_days: list[in
     return out
 
 
+def r1fiel_signal(tf: str = "d1", fetch: bool = True, now: pd.Timestamp | None = None) -> dict:
+    """Fase 8: pesos objetivo (% de la equity) de la cartera R1-fiel para la ULTIMA vela diaria CERRADA. Mismo codigo que el backtest
+    (universe_dyn + r1fiel): el universo del dia usa datos <= t-1, las senales usan cierres <= t. Contrato en docs/BOT.md."""
+    import hashlib
+
+    from . import r1fiel as R
+    from . import universe_dyn as UD
+    from .f8data import F8, F8_LIVE, exchange_usdt, update_all
+    if tf != "d1":
+        raise SystemExit("signals --strategy r1fiel solo implementado para d1 (la estrategia); h4 es una conversion sin veredicto")
+    upd = update_all("1d", now=now) if fetch else None
+    bases = sorted({p.stem for d in (F8, F8_LIVE) for p in (d / "1d").glob("*.csv")})
+    assets, excl, cuts = UD.load_assets_daily(bases, clip=False, live=True)
+    last_day = max(a.last for a in assets.values())
+    dates = pd.date_range("2017-08-01", last_day)
+    uni = UD.build_universe(assets, dates)
+    top = uni["top"].iloc[-1]
+    prev_top = uni["top"].iloc[-2]
+    try:
+        trading = {b for b, st in exchange_usdt().items() if st == "TRADING"}
+    except Exception:           # sin red: no se puede distinguir deslistada de dato faltante
+        trading = None
+    stale = sorted(assets[i].base for i in prev_top.index if bool(prev_top[i]) and assets[i].last < last_day and (trading is None or assets[i].base in trading))
+    if stale:                   # no devolver pesos: el bot vendería por un dato faltante (hallazgo #1 de la revision previa)
+        raise SystemExit(f"DATOS INCOMPLETOS: monedas del top 20 de ayer, hoy TRADING, sin la vela {last_day.date()}: {stale}. No se emiten pesos; reintentar la descarga.")
+    ids = [i for i in top.index if bool(top[i])]
+    day = {i: assets[i] for i in ids if assets[i].last == last_day}      # una moneda cuya ultima vela no es la de hoy (deslistada) no tiene objetivo
+    res = R.last_bar_targets(day, top, "d1")
+    ps = R.params()
+    rows = []
+    for aid in sorted(res["targets"], key=lambda k: -res["targets"][k]["weight"]):
+        t = res["targets"][aid]
+        base = assets[aid].base
+        rows.append(dict(symbol=base, pair=f"{base}USDT", weight_pct_equity=round(t["weight"] * 100.0, 4), weight_raw_pct_equity=round(t["weight_raw"] * 100.0, 4),
+                         active_subsignals=t["active"], total_subsignals=t["total"], vol_ann=t["vol_ann"], close=t["close"],
+                         stop_by_lookback_days=dict(zip(ps["lookbacks_days"], t["stops"]))))
+    return dict(strategy="r1fiel", tf=tf, bar_time_utc=_iso(last_day), params_hash=hashlib.sha256(json.dumps(ps, sort_keys=True).encode()).hexdigest()[:16],
+                universe=[assets[i].base for i in ids], gross_raw=round(res["gross_raw"], 6), gross_scale=round(res["scale"], 6), gross=round(res["gross"], 6),
+                rebalance_band=ps["rebalance_band"], targets=rows, data_update=upd,
+                note="Monedas que no figuran en `targets` tienen objetivo 0. Peso = % de la equity (nocional). No es asesoria financiera.")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--tf", required=True, choices=["h4", "d1", "w1"])
-    ap.add_argument("--symbols", nargs="+", required=True)
+    ap.add_argument("--strategy", default="sqzrsi", choices=["sqzrsi", "r1fiel"])
+    ap.add_argument("--tf", default="d1", choices=["h4", "d1", "w1"])
+    ap.add_argument("--symbols", nargs="+", default=None)
     ap.add_argument("--source", default="binance", choices=["bingx", "binance", "bitstamp"])
     ap.add_argument("--no-fetch", action="store_true", help="no baja velas: usa lo que hay en data/")
     ap.add_argument("--donchian", nargs="*", type=int, default=None, metavar="DIAS",
                     help="agrega el estado de la senal E (sin argumentos: 20 60 150 250). Apagado por defecto.")
     ap.add_argument("--out", default=None)
     a = ap.parse_args()
-    e_days = None if a.donchian is None else (a.donchian or E_DAYS)
-    res = build(a.tf, a.symbols, a.source, not a.no_fetch, e_days)
+    if a.strategy == "r1fiel":
+        res = r1fiel_signal(a.tf, not a.no_fetch)
+    else:
+        if not a.symbols:
+            ap.error("--symbols es obligatorio con --strategy sqzrsi")
+        e_days = None if a.donchian is None else (a.donchian or E_DAYS)
+        res = build(a.tf, a.symbols, a.source, not a.no_fetch, e_days)
     txt = json.dumps(res, indent=1, ensure_ascii=False)
     if a.out:
         open(a.out, "w", encoding="utf-8").write(txt + "\n")

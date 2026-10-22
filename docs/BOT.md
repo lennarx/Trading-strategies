@@ -46,3 +46,30 @@ Objeto extra por moneda: `kind: "E"`, `action` (`long` si alguna sub-señal entr
 
 - No manda órdenes ni toca el exchange. No cubre comisiones, funding ni slippage reales.
 - No es asesoría financiera: es la salida de un modelo validado en backtest, con las limitaciones de `docs/PROTOCOLO.md` y `results/fase7.md`.
+
+
+## Contrato de PESOS OBJETIVO: `--strategy r1fiel` (Fase 8)
+
+```
+python -m sqzlab.signals --strategy r1fiel [--tf d1] [--no-fetch] [--out pesos.json]
+```
+
+Cambia el tipo de contrato: **no hay señales de entrada/salida por moneda sino una cartera**. El bot re-balancea a estos pesos. Solo `d1` (H4 es una conversión sin veredicto). Cron sugerido: `5 0 * * *` UTC (la vela diaria cierra a las 00:00 UTC). Baja las velas de TODOS los pares USDT con status TRADING (`f8data.update_all`, unos 500 llamados), descarta la vela en curso y calcula con la **última vela diaria CERRADA** `D`. Mismo código que el backtest (`universe_dyn` + `r1fiel`; `tests/test_fase8.py` verifica que los pesos coinciden con los del backtest en la última vela).
+
+| Campo | Significado |
+|---|---|
+| `bar_time_utc` | apertura de la vela diaria cerrada `D` (los pesos son los de **su cierre**, o sea los que hay que tener desde `D+1 00:00 UTC`) |
+| `params_hash` | hash de `params/r1fiel.json`; si cambia, cambió la estrategia |
+| `universe` | las 20 monedas del top 20 dinámico del día `D` (datos ≤ `D−1`: ≥ 365 días y mediana de volumen 30 d ≥ 2 M USD) |
+| `targets[]` | por moneda: `symbol`, `pair` (`BTCUSDT`), `weight_pct_equity` (**peso objetivo = % de la equity en nocional**, ya con el tope bruto), `weight_raw_pct_equity` (antes del tope), `active_subsignals` (de 9), `vol_ann` (vol 90 d anualizada), `close`, `stop_by_lookback_days` (stop de cada sub-señal abierta; `null` = cerrada) |
+| `gross_raw`, `gross_scale`, `gross` | suma de pesos sin tope, factor `min(1, 2,0 / gross_raw)` y suma final (≤ 2,0) |
+| `rebalance_band` | 0,20 |
+
+Reglas para el bot:
+- **Toda moneda que no figure en `targets` tiene objetivo 0** (vender si la tiene). Una moneda con `weight_pct_equity = 0` también.
+- **Re-balanceo con banda:** operar una moneda solo si pasa de 0 a >0 (entrar) o de >0 a 0 (salir: siempre), o si el peso efectivo actual (`valor de la posición / equity`) se aparta del objetivo en más de **20% relativo** (`|objetivo − actual| > 0,20 × actual`); al operar, llevar la posición al objetivo. Es la misma regla del backtest.
+- **Pesos = apalancamiento:** el bruto puede llegar a 2,0× la equity. Con una cuenta spot eso no se puede (hay que escalar el bruto a ≤ 1,0 o usar margen/perpetuos); el backtest **no cobra financiamiento**. Cualquier escalado que haga el bot es una decisión del bot y cambia el riesgo.
+- **Costos reales:** el backtest asume 0,15% por lado sobre el nocional operado (0,10% comisión + 0,05% slippage); la rotación del backtest es alta (ver `results/fase8.md`).
+- **Idempotencia:** clave `(strategy, tf, bar_time_utc)`. Si la vela `D` todavía no está publicada, `bar_time_utc` sigue siendo el del día anterior: **comparar y reintentar**, nunca asumir.
+- **Deslistadas:** una moneda deslistada deja de aparecer; vender al último precio posible (el backtest la cierra al último cierre, supuesto optimista).
+- No es asesoría financiera. El veredicto de la Fase 8 está en `results/fase8.md`.

@@ -1,0 +1,19 @@
+{
+  "_meta": {
+    "status": "FIJO. Todos los valores salen del paper (segun el resumen de docs/FASE8_PLAN.md, NO verificado contra el texto) o de docs/PROTOCOLO.md 'Decisiones fijadas ANTES de la Fase 8'. NO optimizado: no hay grilla.",
+    "scope": "un set para todas las monedas; D1 es la estrategia, H4 es la conversion declarada (x6 velas)",
+    "fuente_de_verdad_de": "src/sqzlab/r1fiel.py, src/sqzlab/universe_dyn.py (tests/test_fase8.py verifica que coincidan) y la capa E fiel de pine/sqz_rsi_strategy_unified.pine (genpine)"
+  },
+  "lookbacks_days": [5, 10, 20, 30, 60, 90, 150, 250, 360],
+  "vol_target": 0.25,
+  "vol_window_days": 90,
+  "coin_cap": 2.0,
+  "gross_cap": 2.0,
+  "rebalance_band": 0.2,
+  "top_n": 20,
+  "min_history_days": 365,
+  "min_median_volume_usd": 2000000,
+  "median_window_days": 30,
+  "cost_per_side": {"base": 0.0015, "comision_sola": 0.0010, "estres": 0.0025},
+  "bars_per_day": {"d1": 1, "h4": 6}
+}

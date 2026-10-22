@@ -131,3 +131,27 @@ def test_indicator_h4_preset_turns_off_what_the_h4_params_turn_off():
         assert h4[key] is False
     assert re.search(r"^aShort = .* presetIdx == 1 \? false :", ind, re.M)
     assert re.search(r"^useDivSig = .* presetIdx == 1 \? false :", ind, re.M)
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# Capa E fiel (Fase 8)
+# ---------------------------------------------------------------------------------------------------------------
+def test_e_layer_is_generated_from_r1fiel_params_and_places_no_orders():
+    uni = _uni()
+    ps = genpine.r1fiel_params()
+    seg = uni[uni.index("Capa E fiel"):]
+    assert not any(w in seg for w in ("strategy.entry", "strategy.exit", "strategy.order", "strategy.close"))
+    for d in ps["lookbacks_days"]:
+        assert f"fzN{d}  = math.max(2, int(math.floor({d} * fzBpd + 0.5)))" in seg
+        assert f"fzHi{d} = ta.highest(close, fzN{d})[1]" in seg and f'"E stop N={d}d"' in seg
+    assert f"math.min({float(ps['coin_cap'])}, {ps['vol_target']} / fzVol)" in seg
+    assert f"fzVolN = math.max(2, int(math.floor({ps['vol_window_days']} * fzBpd + 0.5)))" in seg
+    assert seg.count("var bool fzPos") == len(ps["lookbacks_days"]) == 9
+
+
+def test_e_layer_pine_bar_counts_equal_the_python_lookbacks():
+    import math
+    from sqzlab import r1fiel
+    for tf, sec in (("d1", 86400), ("h4", 14400)):
+        bpd = 86400.0 / sec
+        assert [max(2, int(math.floor(d * bpd + 0.5))) for d in r1fiel.params()["lookbacks_days"]] == r1fiel.lookbacks(tf)

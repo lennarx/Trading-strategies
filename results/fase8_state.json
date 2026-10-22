@@ -1,0 +1,733 @@
+{
+ "sanity": {
+  "when": "2026-10-22 03:24 UTC",
+  "window": "2018-08-17..2025-03-31 (no toca B)",
+  "result": {
+   "tf": "d1",
+   "windows": {
+    "A": [
+     "2018-08-17",
+     "2025-03-31"
+    ]
+   },
+   "strategy": {
+    "base": {
+     "A": {
+      "cagr": 0.5135746654638687,
+      "sharpe": 0.9460792349897821,
+      "dd": 0.9530484783994636,
+      "calmar": 0.5388756995093879,
+      "days": 2419,
+      "total": 14.59398172898083,
+      "cagr_sin_mejor_mes": 0.31017346213306896,
+      "mejor_mes_ret": 1.6023904925025203,
+      "meses": 80,
+      "n_cerrados_salida": 1912,
+      "n_cerrados_entrada": 1912,
+      "n_abiertos": 3,
+      "pnl_total": 145939.81728980754,
+      "top_coin": "BNB",
+      "top_share": 0.8673940462010412,
+      "gross_prom": 1.1928342513233476,
+      "gross_max": 2.2265050437353597,
+      "turnover_anual": 64.46645076103961,
+      "costos_pct_equity": 0.6408671687299514
+     }
+    }
+   },
+   "refs": {
+    "btc": {
+     "A": {
+      "cagr": 0.4739321872986437,
+      "sharpe": 0.926722009982374,
+      "dd": 0.7662925431645935,
+      "calmar": 0.6184742257068354,
+      "days": 2419,
+      "total": 12.078783221768923
+     }
+    },
+    "ew": {
+     "A": {
+      "cagr": 0.0922270969265564,
+      "sharpe": 0.5435401383338986,
+      "dd": 0.8804393458200375,
+      "calmar": 0.10475122149460105,
+      "days": 2419,
+      "total": 0.7943828836875746,
+      "cagr_sin_mejor_mes": 0.010588473653770691,
+      "mejor_mes_ret": 0.6733976158721524,
+      "meses": 80,
+      "n_cerrados_salida": 570,
+      "n_cerrados_entrada": 570,
+      "n_abiertos": 20,
+      "pnl_total": 7943.8288368757485,
+      "top_coin": "BNB",
+      "top_share": 1.0820624126300395,
+      "gross_prom": 0.9979436435960137,
+      "gross_max": 1.1250610194846555,
+      "turnover_anual": 12.951873989672956,
+      "costos_pct_equity": 0.12875582129185842
+     }
+    }
+   },
+   "meta": {
+    "n_assets": 161,
+    "bars": 2647,
+    "universo_prom": 17.240181893344356,
+    "escala_dias_con_tope": 746,
+    "gross_raw_max": 6.840297366153716,
+    "identidad_contable_base": 3.4924596548080444e-10,
+    "cierres_forzados_con_posicion": [
+     [
+      "BCHABC",
+      "2019-11-28"
+     ],
+     [
+      "NPXS",
+      "2021-04-05"
+     ],
+     [
+      "RNDR",
+      "2024-07-22"
+     ],
+     [
+      "MATIC",
+      "2024-09-10"
+     ],
+     [
+      "BNX#2",
+      "2025-03-18"
+     ]
+    ],
+    "n_deslistadas_o_cortadas_en_panel": 23
+   }
+  }
+ },
+ "look": {
+  "when": "2026-10-22 03:46 UTC",
+  "results": {
+   "d1": {
+    "tf": "d1",
+    "windows": {
+     "A": [
+      "2018-08-17",
+      "2026-10-21"
+     ],
+     "B": [
+      "2025-04-01",
+      "2026-10-21"
+     ]
+    },
+    "strategy": {
+     "comision_sola": {
+      "A": {
+       "cagr": 0.43315646716395517,
+       "sharpe": 0.8835056695161781,
+       "dd": 0.9487300682609014,
+       "calmar": 0.45656449780069247,
+       "days": 2988,
+       "total": 18.03121762489804,
+       "cagr_sin_mejor_mes": 0.27463717491440587,
+       "mejor_mes_ret": 1.6105995970226141,
+       "meses": 99,
+       "n_cerrados_salida": 2479,
+       "n_cerrados_entrada": 2479,
+       "n_abiertos": 19,
+       "n_salida_por_universo": 428,
+       "dur_mediana_dias": 4.0,
+       "pnl_total": 180312.17624897984,
+       "top_coin": "BNB",
+       "top_share": 0.8702678125826069,
+       "gross_prom": 1.217346932455787,
+       "gross_max": 2.2251840552482007,
+       "turnover_anual": 66.36642778981361,
+       "costos_pct_equity": 0.543295578728666
+      },
+      "B": {
+       "cagr": -0.0009778736810146516,
+       "sharpe": 0.3974038574590915,
+       "dd": 0.7123070745998553,
+       "calmar": -0.001372826012663121,
+       "days": 569,
+       "total": -0.0015239946660160486,
+       "cagr_sin_mejor_mes": -0.29997079193503595,
+       "mejor_mes_ret": 0.7409515535280202,
+       "meses": 19,
+       "n_cerrados_salida": 567,
+       "n_cerrados_entrada": 564,
+       "n_abiertos": 19,
+       "n_salida_por_universo": 74,
+       "dur_mediana_dias": 4.0,
+       "pnl_total": -290.4774275318632,
+       "top_coin": "ZEC",
+       "top_share": null,
+       "gross_prom": 1.323113861584925,
+       "gross_max": 2.217455613167556,
+       "turnover_anual": 73.80331589555978,
+       "costos_pct_equity": 0.11505229245088634
+      }
+     },
+     "base": {
+      "A": {
+       "cagr": 0.3879747453856328,
+       "sharpe": 0.8528216613297682,
+       "dd": 0.9530484783994636,
+       "calmar": 0.4070881536238243,
+       "days": 2988,
+       "total": 13.641257980516043,
+       "cagr_sin_mejor_mes": 0.2349279532542765,
+       "mejor_mes_ret": 1.6023904925025203,
+       "meses": 99,
+       "n_cerrados_salida": 2479,
+       "n_cerrados_entrada": 2479,
+       "n_abiertos": 19,
+       "n_salida_por_universo": 428,
+       "dur_mediana_dias": 4.0,
+       "pnl_total": 136412.57980516023,
+       "top_coin": "BNB",
+       "top_share": 1.0467588728797748,
+       "gross_prom": 1.2177133102894584,
+       "gross_max": 2.2265050437353597,
+       "turnover_anual": 66.02367186763037,
+       "costos_pct_equity": 0.810734513180053
+      },
+      "B": {
+       "cagr": -0.03963293093428377,
+       "sharpe": 0.34817411136216014,
+       "dd": 0.7244015139870256,
+       "calmar": -0.05471127567935152,
+       "days": 569,
+       "total": -0.06109560502396805,
+       "cagr_sin_mejor_mes": -0.3257014576363131,
+       "mejor_mes_ret": 0.7354989219285741,
+       "meses": 19,
+       "n_cerrados_salida": 567,
+       "n_cerrados_entrada": 564,
+       "n_abiertos": 19,
+       "n_salida_por_universo": 74,
+       "dur_mediana_dias": 4.0,
+       "pnl_total": -9527.237484647692,
+       "top_coin": "ZEC",
+       "top_share": null,
+       "gross_prom": 1.323482104031149,
+       "gross_max": 2.2185454495273684,
+       "turnover_anual": 73.64320511296553,
+       "costos_pct_equity": 0.17220404264086595
+      }
+     },
+     "estres": {
+      "A": {
+       "cagr": 0.30311822245602693,
+       "sharpe": 0.7925397551444272,
+       "dd": 0.9603154815094722,
+       "calmar": 0.3156444192481105,
+       "days": 2988,
+       "total": 7.735588861435099,
+       "cagr_sin_mejor_mes": 0.16032317669877405,
+       "mejor_mes_ret": 1.58600463648837,
+       "meses": 99,
+       "n_cerrados_salida": 2479,
+       "n_cerrados_entrada": 2479,
+       "n_abiertos": 19,
+       "n_salida_por_universo": 428,
+       "dur_mediana_dias": 4.0,
+       "pnl_total": 77355.88861435215,
+       "top_coin": "BNB",
+       "top_share": 1.5610229914843872,
+       "gross_prom": 1.218567963937422,
+       "gross_max": 2.229153192529918,
+       "turnover_anual": 65.21355990699591,
+       "costos_pct_equity": 1.3346446370007112
+      },
+      "B": {
+       "cagr": -0.11305130716447676,
+       "sharpe": 0.24923665260359587,
+       "dd": 0.7471981697944486,
+       "calmar": -0.15130029988640997,
+       "days": 569,
+       "total": -0.17057188131881573,
+       "cagr_sin_mejor_mes": -0.37473852884300274,
+       "mejor_mes_ret": 0.7246423966267401,
+       "meses": 19,
+       "n_cerrados_salida": 567,
+       "n_cerrados_entrada": 564,
+       "n_abiertos": 19,
+       "n_salida_por_universo": 74,
+       "dur_mediana_dias": 4.0,
+       "pnl_total": -17964.737304685088,
+       "top_coin": "ZEC",
+       "top_share": null,
+       "gross_prom": 1.3244797677349196,
+       "gross_max": 2.220728686001152,
+       "turnover_anual": 73.31731974911204,
+       "costos_pct_equity": 0.2857366776523613
+      }
+     }
+    },
+    "refs": {
+     "btc": {
+      "A": {
+       "cagr": 0.37207335367470784,
+       "sharpe": 0.8269517434167216,
+       "dd": 0.7662925431645935,
+       "calmar": 0.48555001219004357,
+       "days": 2988,
+       "total": 12.323312868855705
+      },
+      "B": {
+       "cagr": 0.011953607246692144,
+       "sharpe": 0.2366553302699082,
+       "dd": 0.5297176591351062,
+       "calmar": 0.022565997263918548,
+       "days": 569,
+       "total": 0.01869666642075507
+      }
+     },
+     "ew": {
+      "A": {
+       "cagr": 0.02840033010569276,
+       "sharpe": 0.45663980196640863,
+       "dd": 0.903893385268511,
+       "calmar": 0.03141999993423577,
+       "days": 2988,
+       "total": 0.2576607139341678,
+       "cagr_sin_mejor_mes": -0.034286307054264054,
+       "mejor_mes_ret": 0.6733976158721524,
+       "meses": 99,
+       "n_cerrados_salida": 712,
+       "n_cerrados_entrada": 712,
+       "n_abiertos": 20,
+       "n_salida_por_universo": 712,
+       "dur_mediana_dias": 12.0,
+       "pnl_total": 2576.6071393416805,
+       "top_coin": "BNB",
+       "top_share": 3.5382520521475427,
+       "gross_prom": 0.998702828264597,
+       "gross_max": 1.1250610194846555,
+       "turnover_anual": 12.544641569975724,
+       "costos_pct_equity": 0.1540413247030992
+      },
+      "B": {
+       "cagr": -0.203864305271225,
+       "sharpe": 0.0002319524538682036,
+       "dd": 0.710166178293519,
+       "calmar": -0.2870656354842145,
+       "days": 569,
+       "total": -0.2991123993840197,
+       "cagr_sin_mejor_mes": -0.3310807104760074,
+       "mejor_mes_ret": 0.3118192596894831,
+       "meses": 19,
+       "n_cerrados_salida": 142,
+       "n_cerrados_entrada": 131,
+       "n_abiertos": 20,
+       "n_salida_por_universo": 142,
+       "dur_mediana_dias": 16.0,
+       "pnl_total": -5367.221697534068,
+       "top_coin": "ZEC",
+       "top_share": null,
+       "gross_prom": 1.0019303637888541,
+       "gross_max": 1.0564314875537864,
+       "turnover_anual": 10.220156745226625,
+       "costos_pct_equity": 0.023898366526166913
+      }
+     },
+     "r1_fase7": {
+      "A": {
+       "cagr": 0.41587590485853343,
+       "sharpe": 0.9647062407719971,
+       "dd": 0.7288743658462349,
+       "calmar": 0.5705728234463217,
+       "days": 2988,
+       "total": 16.232081045518992
+      },
+      "B": {
+       "cagr": 0.028600483452120073,
+       "sharpe": 0.2443998128940882,
+       "dd": 0.4056005362212977,
+       "calmar": 0.0705139192333698,
+       "days": 569,
+       "total": 0.044940275199893964
+      },
+      "n_cerrados": 2973
+     }
+    },
+    "meta": {
+     "n_assets": 161,
+     "bars": 3216,
+     "universo_prom": 17.765729585006692,
+     "universo_cambios_por_vela": 0.4827586206896552,
+     "escala_dias_con_tope": 961,
+     "gross_raw_max": 6.840297366153716,
+     "identidad_contable_comision_sola": 6.402842700481415e-10,
+     "identidad_contable_base": 3.4924596548080444e-10,
+     "identidad_contable_estres": 4.147295840084553e-10,
+     "cierres_forzados_con_posicion": [
+      [
+       "BCHABC",
+       "2019-11-28"
+      ],
+      [
+       "NPXS",
+       "2021-04-05"
+      ],
+      [
+       "RNDR",
+       "2024-07-22"
+      ],
+      [
+       "MATIC",
+       "2024-09-10"
+      ],
+      [
+       "BNX#2",
+       "2025-03-18"
+      ],
+      [
+       "TON",
+       "2026-06-30"
+      ]
+     ],
+     "n_deslistadas_o_cortadas_en_panel": 39
+    }
+   },
+   "h4": {
+    "tf": "h4",
+    "windows": {
+     "A": [
+      "2018-08-17",
+      "2026-10-21"
+     ],
+     "B": [
+      "2025-04-01",
+      "2026-10-21"
+     ]
+    },
+    "strategy": {
+     "comision_sola": {
+      "A": {
+       "cagr": 0.5501482728938389,
+       "sharpe": 0.9434977845558762,
+       "dd": 0.9030416723020193,
+       "calmar": 0.6092169273776811,
+       "days": 2988,
+       "total": 35.178680359972056,
+       "cagr_sin_mejor_mes": 0.37710627102442107,
+       "mejor_mes_ret": 1.6352586434858978,
+       "meses": 99,
+       "n_cerrados_salida": 2925,
+       "n_cerrados_entrada": 2925,
+       "n_abiertos": 18,
+       "n_salida_por_universo": 386,
+       "dur_mediana_dias": 3.0,
+       "pnl_total": 351786.8035997207,
+       "top_coin": "BNB",
+       "top_share": 0.8400917723762942,
+       "gross_prom": 1.1381269835942778,
+       "gross_max": 2.339048933806772,
+       "turnover_anual": 79.3613473280815,
+       "costos_pct_equity": 0.6496759063460479
+      },
+      "B": {
+       "cagr": -0.08333179290239623,
+       "sharpe": 0.2850946468133491,
+       "dd": 0.729043218695092,
+       "calmar": -0.11430295319329774,
+       "days": 569,
+       "total": -0.12684288980956648,
+       "cagr_sin_mejor_mes": -0.33606751913698707,
+       "mejor_mes_ret": 0.6534236817473242,
+       "meses": 19,
+       "n_cerrados_salida": 678,
+       "n_cerrados_entrada": 675,
+       "n_abiertos": 18,
+       "n_salida_por_universo": 69,
+       "dur_mediana_dias": 2.5,
+       "pnl_total": -52556.502292636025,
+       "top_coin": "ZEC",
+       "top_share": null,
+       "gross_prom": 1.2754607886080158,
+       "gross_max": 2.25143329315251,
+       "turnover_anual": 91.1358461043597,
+       "costos_pct_equity": 0.14207204502296075
+      }
+     },
+     "base": {
+      "A": {
+       "cagr": 0.4947704163577238,
+       "sharpe": 0.9068710446209146,
+       "dd": 0.9111206200758986,
+       "calmar": 0.5430350334037092,
+       "days": 2988,
+       "total": 25.8608294282827,
+       "cagr_sin_mejor_mes": 0.32853000262826004,
+       "mejor_mes_ret": 1.6252110947386895,
+       "meses": 99,
+       "n_cerrados_salida": 2925,
+       "n_cerrados_entrada": 2925,
+       "n_abiertos": 18,
+       "n_salida_por_universo": 386,
+       "dur_mediana_dias": 3.0,
+       "pnl_total": 258608.2942828298,
+       "top_coin": "BNB",
+       "top_share": 1.0105861658015158,
+       "gross_prom": 1.1382331687703982,
+       "gross_max": 2.3402222120074803,
+       "turnover_anual": 78.83696216806365,
+       "costos_pct_equity": 0.9680746970883874
+      },
+      "B": {
+       "cagr": -0.12997403830024246,
+       "sharpe": 0.219634152531107,
+       "dd": 0.7433895104840508,
+       "calmar": -0.1748397528714269,
+       "days": 569,
+       "total": -0.19511002704114622,
+       "cagr_sin_mejor_mes": -0.3670757800964034,
+       "mejor_mes_ret": 0.6421398677404466,
+       "meses": 19,
+       "n_cerrados_salida": 678,
+       "n_cerrados_entrada": 675,
+       "n_abiertos": 18,
+       "n_salida_por_universo": 69,
+       "dur_mediana_dias": 2.5,
+       "pnl_total": -65112.21821827504,
+       "top_coin": "ZEC",
+       "top_share": null,
+       "gross_prom": 1.2749920327253346,
+       "gross_max": 2.2522510550550963,
+       "turnover_anual": 91.13773898493122,
+       "costos_pct_equity": 0.21311249376339397
+      }
+     },
+     "estres": {
+      "A": {
+       "cagr": 0.3901428965644793,
+       "sharpe": 0.8336475938776711,
+       "dd": 0.9328958273931192,
+       "calmar": 0.41820628317600395,
+       "days": 2988,
+       "total": 13.829541694712324,
+       "cagr_sin_mejor_mes": 0.23669388952762138,
+       "mejor_mes_ret": 1.6052021789214868,
+       "meses": 99,
+       "n_cerrados_salida": 2925,
+       "n_cerrados_entrada": 2925,
+       "n_abiertos": 18,
+       "n_salida_por_universo": 386,
+       "dur_mediana_dias": 3.0,
+       "pnl_total": 138295.41694712572,
+       "top_coin": "BNB",
+       "top_share": 1.4875445342192126,
+       "gross_prom": 1.1385204944400036,
+       "gross_max": 2.3425741080706017,
+       "turnover_anual": 77.60559292056409,
+       "costos_pct_equity": 1.5882569290866129
+      },
+      "B": {
+       "cagr": -0.20721106157379732,
+       "sharpe": 0.10328116359966258,
+       "dd": 0.767715899265302,
+       "calmar": -0.2699059141175748,
+       "days": 569,
+       "total": -0.30370008839821216,
+       "cagr_sin_mejor_mes": -0.4203991860271926,
+       "mejor_mes_ret": 0.6295043948005625,
+       "meses": 19,
+       "n_cerrados_salida": 678,
+       "n_cerrados_entrada": 675,
+       "n_abiertos": 18,
+       "n_salida_por_universo": 69,
+       "dur_mediana_dias": 2.5,
+       "pnl_total": -64680.93774747974,
+       "top_coin": "ZEC",
+       "top_share": null,
+       "gross_prom": 1.275514374993872,
+       "gross_max": 2.2549654436667614,
+       "turnover_anual": 90.58666281993308,
+       "costos_pct_equity": 0.3530398023598762
+      }
+     }
+    },
+    "refs": {
+     "btc": {
+      "A": {
+       "cagr": 0.37207335367470784,
+       "sharpe": 0.8269517434167216,
+       "dd": 0.7662925431645935,
+       "calmar": 0.48555001219004357,
+       "days": 2988,
+       "total": 12.323312868855705
+      },
+      "B": {
+       "cagr": 0.011953607246692144,
+       "sharpe": 0.2366553302699082,
+       "dd": 0.5297176591351062,
+       "calmar": 0.022565997263918548,
+       "days": 569,
+       "total": 0.01869666642075507
+      }
+     },
+     "ew": {
+      "A": {
+       "cagr": 0.0044363881507059055,
+       "sharpe": 0.428842758279965,
+       "dd": 0.9178951836598157,
+       "calmar": 0.004833218683006066,
+       "days": 2988,
+       "total": 0.03690186204311696,
+       "cagr_sin_mejor_mes": -0.05582703471827444,
+       "mejor_mes_ret": 0.6594840957977466,
+       "meses": 99,
+       "n_cerrados_salida": 712,
+       "n_cerrados_entrada": 712,
+       "n_abiertos": 20,
+       "n_salida_por_universo": 712,
+       "dur_mediana_dias": 12.0,
+       "pnl_total": 369.0186204310685,
+       "top_coin": "BNB",
+       "top_share": 21.64176151620456,
+       "gross_prom": 0.9997182813132353,
+       "gross_max": 1.1429902748335,
+       "turnover_anual": 12.849092402874026,
+       "costos_pct_equity": 0.1577798141087161
+      },
+      "B": {
+       "cagr": -0.21642513643662442,
+       "sharpe": -0.02021066012120394,
+       "dd": 0.7161611196028934,
+       "calmar": -0.3022017399612963,
+       "days": 569,
+       "total": -0.31627470149472814,
+       "cagr_sin_mejor_mes": -0.34013675682055156,
+       "mejor_mes_ret": 0.3071807652879537,
+       "meses": 19,
+       "n_cerrados_salida": 142,
+       "n_cerrados_entrada": 131,
+       "n_abiertos": 20,
+       "n_salida_por_universo": 142,
+       "dur_mediana_dias": 16.0,
+       "pnl_total": -4796.4559394533835,
+       "top_coin": "ZEC",
+       "top_share": null,
+       "gross_prom": 1.0043383635539074,
+       "gross_max": 1.0435383656877173,
+       "turnover_anual": 10.265710566749394,
+       "costos_pct_equity": 0.024004887585535914
+      }
+     },
+     "r1_fase7": {
+      "A": {
+       "cagr": 0.3810692677295109,
+       "sharpe": 0.9252589775892367,
+       "dd": 0.6567970398861186,
+       "calmar": 0.5801933391715409,
+       "days": 2988,
+       "total": 13.055491029797416
+      },
+      "B": {
+       "cagr": 0.021491717243255826,
+       "sharpe": 0.22837717621787781,
+       "dd": 0.37879691448358654,
+       "calmar": 0.05673678010961484,
+       "days": 569,
+       "total": 0.033704114340146196
+      },
+      "n_cerrados": 2814
+     }
+    },
+    "meta": {
+     "n_assets": 161,
+     "bars": 19296,
+     "universo_prom": 17.765729585006692,
+     "universo_cambios_por_vela": 0.08043732916829363,
+     "escala_dias_con_tope": 874,
+     "gross_raw_max": 6.797471840325291,
+     "identidad_contable_comision_sola": 8.471943147014827e-10,
+     "identidad_contable_base": 7.494236342608929e-10,
+     "identidad_contable_estres": 7.385096978396177e-10,
+     "cierres_forzados_con_posicion": [
+      [
+       "BCHABC",
+       "2019-11-28"
+      ],
+      [
+       "NPXS",
+       "2021-04-05"
+      ],
+      [
+       "RNDR",
+       "2024-07-22"
+      ],
+      [
+       "MATIC",
+       "2024-09-10"
+      ],
+      [
+       "BNX#2",
+       "2025-03-18"
+      ],
+      [
+       "TON",
+       "2026-06-30"
+      ]
+     ],
+     "n_deslistadas_o_cortadas_en_panel": 39
+    }
+   }
+  },
+  "veredicto": {
+   "veredicto": "NO SIRVE",
+   "n_B": 567,
+   "A": [
+    [
+     "1. CAGR neto > 0",
+     true,
+     "38.80%"
+    ],
+    [
+     "2. Sharpe > Sharpe buy&hold BTC",
+     true,
+     "0.85 vs 0.83"
+    ],
+    [
+     "3. DD max < DD max buy&hold BTC",
+     false,
+     "95.3% vs 76.6%"
+    ],
+    [
+     "4. Ninguna moneda aporta > 50% de la ganancia",
+     false,
+     "BNB 105%"
+    ],
+    [
+     "5. (solo A) CAGR > 0 sin el mejor mes",
+     true,
+     "23.49%"
+    ]
+   ],
+   "B": [
+    [
+     "1. CAGR neto > 0",
+     false,
+     "-3.96%"
+    ],
+    [
+     "2. Sharpe > Sharpe buy&hold BTC",
+     true,
+     "0.35 vs 0.24"
+    ],
+    [
+     "3. DD max < DD max buy&hold BTC",
+     false,
+     "72.4% vs 53.0%"
+    ],
+    [
+     "4. Ninguna moneda aporta > 50% de la ganancia",
+     true,
+     "ganancia total <= 0 (ZEC)"
+    ]
+   ]
+  },
+  "notes": ""
+ }
+}

@@ -1,5 +1,5 @@
 //@version=5
-// GENERADO por src/sqzlab/genpine.py desde params/{h4,d1,w1}.json. NO editar a mano. NO COMPILADO en TradingView.
+// GENERADO por src/sqzlab/genpine.py desde params/{h4,d1,w1}.json y params/r1fiel.json. NO editar a mano. NO COMPILADO en TradingView.
 // Version strategy() del indicador SQZ+RSI+SIG v8: SOLO para backtest en el Strategy Tester.
 // Misma logica de senales A / B / C / D (D = divergencia del momentum del SQZ), pero con ordenes de verdad:
 // entrada al cierre de la vela de la senal, stop intravela (strategy.exit) y salida al cierre bajo/sobre
@@ -442,3 +442,165 @@ tfCalibrated = tfSec == 14400 or tfSec == 86400 or tfSec == 604800
 var table infoTbl = table.new(position.top_right, 1, 1)
 if barstate.islast
     table.cell(infoTbl, 0, 0, "Preset: " + presetName + (useMine ? " | casillas propias" : "") + (presetIdx == 0 or tfCalibrated ? "" : " (TF no calibrado)"), text_color=color.white, bgcolor=color.new(color.gray, 30))
+
+// ===== Capa E fiel (Fase 8): ensamble de Donchian de la estrategia R1-fiel. GENERADO por genpine desde params/r1fiel.json. SOLO VISUAL: no abre ordenes. =====
+// Por lookback N (en dias; en velas = dias x velas por dia): entra al CIERRE si close > maximo de los N cierres previos; stop = max(stop de ayer, (max+min)/2 de los N cierres previos);
+// sale al CIERRE si close < stop. El peso objetivo de la moneda = abiertas/9 x min(2, 0,25 / vol 90d anualizada). La cartera (top 20 dinamico, tope bruto 2,0, banda 20%) no se puede mostrar en TradingView.
+fzOn  = input.bool(true, "E fiel: mostrar capa (solo visual, no opera)", group="E fiel (Fase 8)")
+fzBpd = 86400.0 / timeframe.in_seconds()
+fzVolN = math.max(2, int(math.floor(90 * fzBpd + 0.5)))
+fzLr  = math.log(close / close[1])
+fzVol = ta.stdev(fzLr, fzVolN) * math.sqrt(fzVolN / (fzVolN - 1.0)) * math.sqrt(365.0 * fzBpd)   // desvio MUESTRAL (ddof=1) de retornos log, anualizado
+fzMult = fzVol > 0 ? math.min(2.0, 0.25 / fzVol) : 0.0
+fzN5  = math.max(2, int(math.floor(5 * fzBpd + 0.5)))
+fzHi5 = ta.highest(close, fzN5)[1]
+fzLo5 = ta.lowest(close, fzN5)[1]
+fzMid5 = (fzHi5 + fzLo5) / 2
+var bool fzPos5 = false
+var float fzSt5 = na
+fzEnt5 = false
+if fzPos5
+    fzSt5 := math.max(fzSt5, fzMid5)
+    if close < fzSt5
+        fzPos5 := false
+else if close > fzHi5
+    fzPos5 := true
+    fzSt5 := fzMid5
+    fzEnt5 := true
+fzN10  = math.max(2, int(math.floor(10 * fzBpd + 0.5)))
+fzHi10 = ta.highest(close, fzN10)[1]
+fzLo10 = ta.lowest(close, fzN10)[1]
+fzMid10 = (fzHi10 + fzLo10) / 2
+var bool fzPos10 = false
+var float fzSt10 = na
+fzEnt10 = false
+if fzPos10
+    fzSt10 := math.max(fzSt10, fzMid10)
+    if close < fzSt10
+        fzPos10 := false
+else if close > fzHi10
+    fzPos10 := true
+    fzSt10 := fzMid10
+    fzEnt10 := true
+fzN20  = math.max(2, int(math.floor(20 * fzBpd + 0.5)))
+fzHi20 = ta.highest(close, fzN20)[1]
+fzLo20 = ta.lowest(close, fzN20)[1]
+fzMid20 = (fzHi20 + fzLo20) / 2
+var bool fzPos20 = false
+var float fzSt20 = na
+fzEnt20 = false
+if fzPos20
+    fzSt20 := math.max(fzSt20, fzMid20)
+    if close < fzSt20
+        fzPos20 := false
+else if close > fzHi20
+    fzPos20 := true
+    fzSt20 := fzMid20
+    fzEnt20 := true
+fzN30  = math.max(2, int(math.floor(30 * fzBpd + 0.5)))
+fzHi30 = ta.highest(close, fzN30)[1]
+fzLo30 = ta.lowest(close, fzN30)[1]
+fzMid30 = (fzHi30 + fzLo30) / 2
+var bool fzPos30 = false
+var float fzSt30 = na
+fzEnt30 = false
+if fzPos30
+    fzSt30 := math.max(fzSt30, fzMid30)
+    if close < fzSt30
+        fzPos30 := false
+else if close > fzHi30
+    fzPos30 := true
+    fzSt30 := fzMid30
+    fzEnt30 := true
+fzN60  = math.max(2, int(math.floor(60 * fzBpd + 0.5)))
+fzHi60 = ta.highest(close, fzN60)[1]
+fzLo60 = ta.lowest(close, fzN60)[1]
+fzMid60 = (fzHi60 + fzLo60) / 2
+var bool fzPos60 = false
+var float fzSt60 = na
+fzEnt60 = false
+if fzPos60
+    fzSt60 := math.max(fzSt60, fzMid60)
+    if close < fzSt60
+        fzPos60 := false
+else if close > fzHi60
+    fzPos60 := true
+    fzSt60 := fzMid60
+    fzEnt60 := true
+fzN90  = math.max(2, int(math.floor(90 * fzBpd + 0.5)))
+fzHi90 = ta.highest(close, fzN90)[1]
+fzLo90 = ta.lowest(close, fzN90)[1]
+fzMid90 = (fzHi90 + fzLo90) / 2
+var bool fzPos90 = false
+var float fzSt90 = na
+fzEnt90 = false
+if fzPos90
+    fzSt90 := math.max(fzSt90, fzMid90)
+    if close < fzSt90
+        fzPos90 := false
+else if close > fzHi90
+    fzPos90 := true
+    fzSt90 := fzMid90
+    fzEnt90 := true
+fzN150  = math.max(2, int(math.floor(150 * fzBpd + 0.5)))
+fzHi150 = ta.highest(close, fzN150)[1]
+fzLo150 = ta.lowest(close, fzN150)[1]
+fzMid150 = (fzHi150 + fzLo150) / 2
+var bool fzPos150 = false
+var float fzSt150 = na
+fzEnt150 = false
+if fzPos150
+    fzSt150 := math.max(fzSt150, fzMid150)
+    if close < fzSt150
+        fzPos150 := false
+else if close > fzHi150
+    fzPos150 := true
+    fzSt150 := fzMid150
+    fzEnt150 := true
+fzN250  = math.max(2, int(math.floor(250 * fzBpd + 0.5)))
+fzHi250 = ta.highest(close, fzN250)[1]
+fzLo250 = ta.lowest(close, fzN250)[1]
+fzMid250 = (fzHi250 + fzLo250) / 2
+var bool fzPos250 = false
+var float fzSt250 = na
+fzEnt250 = false
+if fzPos250
+    fzSt250 := math.max(fzSt250, fzMid250)
+    if close < fzSt250
+        fzPos250 := false
+else if close > fzHi250
+    fzPos250 := true
+    fzSt250 := fzMid250
+    fzEnt250 := true
+fzN360  = math.max(2, int(math.floor(360 * fzBpd + 0.5)))
+fzHi360 = ta.highest(close, fzN360)[1]
+fzLo360 = ta.lowest(close, fzN360)[1]
+fzMid360 = (fzHi360 + fzLo360) / 2
+var bool fzPos360 = false
+var float fzSt360 = na
+fzEnt360 = false
+if fzPos360
+    fzSt360 := math.max(fzSt360, fzMid360)
+    if close < fzSt360
+        fzPos360 := false
+else if close > fzHi360
+    fzPos360 := true
+    fzSt360 := fzMid360
+    fzEnt360 := true
+fzAct = (fzPos5 ? 1 : 0) + (fzPos10 ? 1 : 0) + (fzPos20 ? 1 : 0) + (fzPos30 ? 1 : 0) + (fzPos60 ? 1 : 0) + (fzPos90 ? 1 : 0) + (fzPos150 ? 1 : 0) + (fzPos250 ? 1 : 0) + (fzPos360 ? 1 : 0)
+fzEntN = (fzEnt5 ? 1 : 0) + (fzEnt10 ? 1 : 0) + (fzEnt20 ? 1 : 0) + (fzEnt30 ? 1 : 0) + (fzEnt60 ? 1 : 0) + (fzEnt90 ? 1 : 0) + (fzEnt150 ? 1 : 0) + (fzEnt250 ? 1 : 0) + (fzEnt360 ? 1 : 0)
+fzW = fzAct / 9.0 * fzMult
+plot(fzOn and fzPos5 ? fzSt5 : na, "E stop N=5d", color=color.new(color.yellow, 25), linewidth=1, style=plot.style_linebr)
+plot(fzOn and fzPos10 ? fzSt10 : na, "E stop N=10d", color=color.new(color.orange, 25), linewidth=1, style=plot.style_linebr)
+plot(fzOn and fzPos20 ? fzSt20 : na, "E stop N=20d", color=color.new(color.red, 25), linewidth=1, style=plot.style_linebr)
+plot(fzOn and fzPos30 ? fzSt30 : na, "E stop N=30d", color=color.new(color.fuchsia, 25), linewidth=1, style=plot.style_linebr)
+plot(fzOn and fzPos60 ? fzSt60 : na, "E stop N=60d", color=color.new(color.purple, 25), linewidth=1, style=plot.style_linebr)
+plot(fzOn and fzPos90 ? fzSt90 : na, "E stop N=90d", color=color.new(color.blue, 25), linewidth=1, style=plot.style_linebr)
+plot(fzOn and fzPos150 ? fzSt150 : na, "E stop N=150d", color=color.new(color.aqua, 25), linewidth=1, style=plot.style_linebr)
+plot(fzOn and fzPos250 ? fzSt250 : na, "E stop N=250d", color=color.new(color.teal, 25), linewidth=1, style=plot.style_linebr)
+plot(fzOn and fzPos360 ? fzSt360 : na, "E stop N=360d", color=color.new(color.green, 25), linewidth=1, style=plot.style_linebr)
+plotshape(fzOn and fzEntN > 0, "E: entra (al menos 1 sub-senal)", style=shape.triangleup, location=location.belowbar, color=color.new(color.teal, 0), size=size.tiny)
+plot(fzOn ? fzAct : na, "E sub-senales abiertas (de 9)", display=display.status_line + display.data_window)
+plot(fzOn ? fzEntN : na, "E entran en esta vela", display=display.status_line + display.data_window)
+plot(fzOn ? fzVol : na, "E vol 90d anualizada", display=display.status_line + display.data_window)
+plot(fzOn ? fzW * 100 : na, "E peso objetivo de la moneda (% equity, sin universo ni tope bruto)", display=display.status_line + display.data_window)
